@@ -340,56 +340,15 @@ C
         molhs=molh
         molh =0
       endif
-C      write(6,*) ' calling jon, j,kl,ntp = ',j,kl,ntp
-C       write(6,1313) ntp,t(ntp),pe(ntp)
-C1313  format( ' before jon: k,t(k),pe(k): ',i3,f8.1,1p3e11.3)
-
-      if(pe(ntp).le.1.e-33) then
-       write(6,*) ' ***** now we are in trouble:'                   
-       write(6,*) ' maxmol,maxmet = ',maxmol,maxmet
-       write(6,*) ' ntp,nt,j = ',ntp,nt,j
-       write(6,1320) tskal
-       write(6,1321) peskal
-1320  format(' tskal:',7f8.1,6(/9f8.1))
-1321  format(' peskal:',1p7e10.2,7(/8e10.2))
-       write(6,1322) t
-       write(6,1323) pe
-1322  format(' t:',7f8.1,6(/9f8.1))
-1323  format(' pe:',1p7e10.2,7(/8e10.2))
-      end if
 
       CALL JON(T(NTP),PE(NTP),1,PG,RO,DUM,IOUTR)
 
-C1314  format( ' after jon: k,t(k),pe(k),pg,ro: ',i3,f8.1,1p3e11.3)
-C      write(6,1314) ntp,t(ntp),pe(ntp),pg,ro
 
       if(j.le.0) then
         molh=molhs
         rosav(ntp)=ro
         poxg1(ntp)=pe(ntp)*foe
 
-**********18.12.94 
-
-        IF (JUMP.GE.1) THEN
-         prh2o(ntp)=partryck(ntp,4)
-         ELSE
-         prh2o(ntp)=presmo(4)
-        ENDIF
-        
-         if (ntp.le.0) then
-         write(6,*) 'ntp (must be NE 0 for dimension)',ntp
-         write(6,*) 'prh2o(ntp)      : ', prh2o(ntp)
-         write(6,*) 'partryck(ntp,4) : ',partryck(ntp,4)
-         write(6,*) 'should be equal'
-         end if
-*   well, it is / 11.1.95
-
-*
-* it works but it starts with ntp = 0 --> is that right ???
-* yes it is, because ntp=0 means optical depth=0 and that means you start on
-* the surface of the star
-*
-***********
       endif
 
       CALL DETABS(J,0,NTP,IOUTR)
@@ -1574,11 +1533,6 @@ C
       ABNAME(NPROV-2)=NELS
       ABNAME(NPROV-1)=NHRAY
       ABNAME(NPROV)=NH2RAY
-      write(6,*) ' nkomp,nprova,nprovs in first call to detabs:',
-     &       nkomp,nprova,nprovs
-      write(6,*) ' the names of the ncomp abs and scat components are:'
-      write(6,1233) (abname(npr),npr=1,nkomp)
-1233  format(15a4)
       ncall=0
       FIRST=.FALSE.
     1 CONTINUE
@@ -1702,16 +1656,10 @@ C        ANALYTICAL EXPRESSIONS, MAY BE ADDED.
       CALL HEOPAC(OMEGA,T(NTP),PROPAC)
       HEPRES=PROPAC*PHEL(NTP)
       PROV(NPROVA)=HEPRES
-c	temporary!!!!!!!!!!!!!!!!!!!
-C         if(ntp.eq.30)	write(50,2221) jp, xla(jp), omega, 
-C    1                          h2pres, hepres
-2221	format(i5,2f11.3,2e12.4)
       H2PRES=H2PRES/STIM
       PROV(NPROVA-1)=H2PRES
       HEPRES=HEPRES/STIM
       PROV(NPROVA)=HEPRES
-C      if(lin_cia.eq.1 .and.(xla(jp).ge.1250..and.xla(jp).le.250000.))
-C      if(lin_cia.eq.1 .and.(xla(jp).ge.5000..and.xla(jp).le.125000.))
       if(lin_cia.eq.1)
      *     SUMABS=SUMABS+H2PRES+HEPRES
       SUMABS=SUMABS*STIM
@@ -3210,7 +3158,7 @@ C        PER CM3) AND INNER ENERGY (E, IN ERGS PER GRAM) ARE ALSO EVALUATED.
 C        N O T E . RADIATION PRESSURE IS NOT INCLUDED IN E.
 C
 C        THE ENERGIES OF IONIZATION ARE REDUCED BY DXI, FOLLOWING BASCHEK ET 
-C        AL., ABH. HAMB. VIII, 26 EQ. (10). THESE REDUCTIONS ARE ALSO MADE IN
+C        AL., ABH.HAMB. VIII, 26 EQ. (10). THESE REDUCTIONS ARE ALSO MADE IN
 C        THE COMPUTATION OF E.
 C        THE ENERGY OF DISSOCIATION FOR H- HAS BEEN REDUCED BY 2*DXI, FOLLOWING
 C        TARAFDAR AND VARDYA, THIRD HARV. SMITHS. CONF., PAGE 143. THE FORMATION
@@ -3233,7 +3181,6 @@ C             STAGE, FOR ELEMENT I.
 C
 C
       include 'parameter.inc'
-C
       DIMENSION DQ(4),F(5),PFAK(5),RFAK(45)
       COMMON/CI1/FL2(5),PARCO(45),PARQ(180),SHXIJ(5),TPARF(4),
      *XIONG(16,5),EEV,ENAMN(ndp),SUMH(ndp),XKBOL,NJ(16),IEL(16),
@@ -4184,10 +4131,6 @@ C*
      &             PTURB(I),XKAPR(I),I
        end if
         pgx=PP(i)-PPR(i)-PPT(i)
-        ppallsum=ppappsum(i)+ppnonappsum(i)+ppat1sum(i)+ppel(i)
-      WRITE(6,2095) I,log10(TAU(I)),T(I),PPE(I),PPEL(I),
-     &  pgx,ppappsum(i),ppnonappsum(i),ppmolsum(i),ppat1sum(i),ppallsum,
-     &  ggrho(i),GGMU(I)
       IF (T(I).GT.TEFF) then
          iint = i
          if (t(i)-teff .gt. teff-t(i-1)) iint = i-1
@@ -12947,13 +12890,6 @@ C            CALL JON(T(K),PE(K),1,PGP,RO(K),EP,0)
             ppel(k) = ppelGG
             ggmu(k) = ggmuk
             ggrho(k) = ggrhok
-            ppsum(k) = ppsumk
-            ppappsum(k) = ppappsumk
-            ppnonappsum(k) = ppnonappsumk
-            ppat1sum(k) = ppat1sumk
-            ppat2sum(k) = ppat2sumk
-            ppmolsum(k) = ppmolsumk
-            ppgs(k) = ppgsk
             tg(k) = tgk
             pges(k) = pgesk
             ro(k) = ggrho(k)
@@ -16988,14 +16924,14 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       write(70,'(a27)') '# equilibrium condensation?'
       write(70,'(a36)') '.false.               ! model_eqcond'
       write(70,'(a15)') '# model options'
-      write(70,'(a42)') '1                     ! model_dim  (0,1,2)'
+      write(70,'(a42)') '0                     ! model_dim  (0,1,2)'
       write(70,'(a36)') '.true.                ! model_pconst'
 !      open(unit=10,file='s',status='old')
 
 !      write(70,"(F4.1,a26)") tt, '                ! Tmax [K]'
 !      write(70,"(F4.1,a48)") tt-1,'                ! Tmin [K]     
       write(70,*) tt, '                ! Tmax [K]'
-      write(70,*) tt-1,'                ! Tmin [K] 
+      write(70,*) tt,'                ! Tmin [K] 
 
      & (if model_dim>0)'
       write(70,*) ptot/bar,'                   ! pmax [bar]   
@@ -17023,15 +16959,6 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       include 'parameter.inc'
 !      
 !     Partial pressures from GG-chem subroutine DEMO_SWEEP (ERC J=4)
-      common /partialpressure/
-     > ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,
-     > ppCS,ppH2O,ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,
-     > ppZrO,ppMgH,ppNH3,ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,
-     > ppHm,ppH2,ppH2p,ppHS,ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,
-     > ppS2,ppSiS,ppLaO,ppCH2,ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,
-     > ppCHNO,ppSiF2,ppAlCl,ppAlF,ppAlH,ppAlO,ppBeH,ppCaF,ppCH3F,ppCP,
-     > ppH2CO,ppHCl,ppHNO3,ppKCl,ppKF,ppLiCl,ppLiF,ppMgF,ppNaCl,ppNaF,
-     > ppNaH,ppPH3,ppPN,ppPO,ppPS,ppSH,ppSO2
 
       character atnames*2, molnames*8
       common /ggchemresults/
@@ -17049,8 +16976,7 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
 
 
       open(unit=990,file='GGchem_ppel')
-       read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ggrhodust,ppsumk
-     &     ,ppappsumk,ppnonappsumk,ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+       read(990,*) Tg,pgesk,ppelGG,ggmuk,ggrhok,ggrhodust
       close(990)
 
       open(unit=707,file='pp.dat')
@@ -17064,12 +16990,6 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
 708    format(i4,18x,a2)
 709    format(10a8)
       close(707)
-
-
-
-
-
-      call consistency(1)
  
       return
       end
@@ -17290,25 +17210,6 @@ C
               pp4(lk) = partgg(i)
         end if
 100   continue
-C      print 200,psumgg(k)
-C      if(kk.le.1) write(6,*)
-C     &  'k,ttgg(k),ppgg,psumgg,pp1,pp2,pp3,lkk{1,2,3}'
-C           k = kk
-C           write(6,210) k,ttgg(k),ppgg(k),psumgg(k)
-C     &    ,pp1(k),pp2(k),pp3(k),lkk1(k),lkk2(k),lkk3(k)
-C       if(kk.eq.ntau) then 
-C       write(6,212)
-C     > ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-C     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
-C      if(iwr.ge.2 ) then
-C      write(6,*) 'kk,iwr,ndp,ntau = ',kk,iwr,ndp,ntau
-C           write(6,*) 'Consistency check (ppgg from call to GGchem):'
-C           write(6,*)'k,ttgg(k),ppgg(k),psumgg(k)[dyn/cm2],lkk1-3(k)'
-C           do 120 k=1,1       !ntau
-C           write(6,200) k,ttgg(k),ppgg(k),psumgg(k),pp1(k),pp2(k),pp3(k)
-C     &    ,lkk1(k),lkk2(k),lkk3(k)
-C120        continue
-C       end if
 200   format(i3,f8.1,1p5e10.2,3i3)
 210   format(i3,f8.1,1p5e10.2,3i3)
 212   format(1p10e10.2)
