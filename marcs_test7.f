@@ -340,15 +340,56 @@ C
         molhs=molh
         molh =0
       endif
+C      write(6,*) ' calling jon, j,kl,ntp = ',j,kl,ntp
+C       write(6,1313) ntp,t(ntp),pe(ntp)
+C1313  format( ' before jon: k,t(k),pe(k): ',i3,f8.1,1p3e11.3)
+
+      if(pe(ntp).le.1.e-33) then
+       write(6,*) ' ***** now we are in trouble:'                   
+       write(6,*) ' maxmol,maxmet = ',maxmol,maxmet
+       write(6,*) ' ntp,nt,j = ',ntp,nt,j
+       write(6,1320) tskal
+       write(6,1321) peskal
+1320  format(' tskal:',7f8.1,6(/9f8.1))
+1321  format(' peskal:',1p7e10.2,7(/8e10.2))
+       write(6,1322) t
+       write(6,1323) pe
+1322  format(' t:',7f8.1,6(/9f8.1))
+1323  format(' pe:',1p7e10.2,7(/8e10.2))
+      end if
 
       CALL JON(T(NTP),PE(NTP),1,PG,RO,DUM,IOUTR)
 
+C1314  format( ' after jon: k,t(k),pe(k),pg,ro: ',i3,f8.1,1p3e11.3)
+C      write(6,1314) ntp,t(ntp),pe(ntp),pg,ro
 
       if(j.le.0) then
         molh=molhs
         rosav(ntp)=ro
         poxg1(ntp)=pe(ntp)*foe
 
+**********18.12.94 
+
+        IF (JUMP.GE.1) THEN
+         prh2o(ntp)=partryck(ntp,4)
+         ELSE
+         prh2o(ntp)=presmo(4)
+        ENDIF
+        
+         if (ntp.le.0) then
+         write(6,*) 'ntp (must be NE 0 for dimension)',ntp
+         write(6,*) 'prh2o(ntp)      : ', prh2o(ntp)
+         write(6,*) 'partryck(ntp,4) : ',partryck(ntp,4)
+         write(6,*) 'should be equal'
+         end if
+*   well, it is / 11.1.95
+
+*
+* it works but it starts with ntp = 0 --> is that right ???
+* yes it is, because ntp=0 means optical depth=0 and that means you start on
+* the surface of the star
+*
+***********
       endif
 
       CALL DETABS(J,0,NTP,IOUTR)
@@ -496,7 +537,64 @@ C
 C*
 C*NEW PDS MEMBER FOLLOWS
 C*
-     
+      SUBROUTINE ACCEL(CORR,N)
+      implicit real*8 (a-h,o-z)
+C
+      DIMENSION CORR(40), CORRO(40), KONV(40), CORRUT(40)
+      DATA NCALL/0/
+C
+      IF(NCALL.EQ.0) THEN
+        DO 10 I=1,N
+          KONV(I) = 0
+          CORRO(I) = CORR(I)
+   10   CONTINUE
+        NCALL = NCALL + 1
+        RETURN
+      ENDIF
+C
+      MAXCOR=0
+      DO 40 I=1,N
+C
+        IF(CORR(I)*CORRO(I).GT.0.) THEN
+          KONV(I)=KONV(I) + 1
+        ELSE
+          KONV(I)=0
+        ENDIF
+C
+        MAXCOR=MAX0(MAXCOR,KONV(I))
+        CORRO(I)   = CORR(I)
+   40 CONTINUE
+C
+      IF(MAXCOR.LT.2) RETURN
+C
+      IF(KONV(1).EQ.5) THEN
+        CORRUT(1) = 5.*CORR(1)
+      ELSE IF(KONV(2).EQ.5) THEN
+        CORRUT(1) = 2.*CORR(1)
+      ENDIF
+      DO 50 I=2,N-1
+        IF(KONV(I).EQ.5) THEN
+          CORRUT(I) = 5.*CORR(I)
+        ELSE IF(KONV(I+1).EQ.5 .OR. KONV(I-1).EQ.5) THEN
+          CORRUT(I) = 2.*CORR(I)
+        ENDIF
+   50 CONTINUE
+      IF(KONV(N).EQ.5) THEN
+        CORRUT(N) = 5.*CORR(N)
+      ELSE IF(KONV(N-1).EQ.5) THEN
+        CORRUT(N) = 2.*CORR(N)
+      ENDIF
+C
+      DO 60 I=1,N
+        CORR(I) = CORRUT(I)
+        KONV(I) = 0
+   60 CONTINUE
+C
+      WRITE(7,65) (CORR(I),I=1,N)
+   65 FORMAT(1X,10F7.1)
+C
+      RETURN
+      END
 C
       SUBROUTINE AINV3(A,M)
       implicit real*8 (a-h,o-z)
@@ -1533,6 +1631,11 @@ C
       ABNAME(NPROV-2)=NELS
       ABNAME(NPROV-1)=NHRAY
       ABNAME(NPROV)=NH2RAY
+      write(6,*) ' nkomp,nprova,nprovs in first call to detabs:',
+     &       nkomp,nprova,nprovs
+      write(6,*) ' the names of the ncomp abs and scat components are:'
+      write(6,1233) (abname(npr),npr=1,nkomp)
+1233  format(15a4)
       ncall=0
       FIRST=.FALSE.
     1 CONTINUE
@@ -1656,10 +1759,16 @@ C        ANALYTICAL EXPRESSIONS, MAY BE ADDED.
       CALL HEOPAC(OMEGA,T(NTP),PROPAC)
       HEPRES=PROPAC*PHEL(NTP)
       PROV(NPROVA)=HEPRES
+c	temporary!!!!!!!!!!!!!!!!!!!
+C         if(ntp.eq.30)	write(50,2221) jp, xla(jp), omega, 
+C    1                          h2pres, hepres
+2221	format(i5,2f11.3,2e12.4)
       H2PRES=H2PRES/STIM
       PROV(NPROVA-1)=H2PRES
       HEPRES=HEPRES/STIM
       PROV(NPROVA)=HEPRES
+C      if(lin_cia.eq.1 .and.(xla(jp).ge.1250..and.xla(jp).le.250000.))
+C      if(lin_cia.eq.1 .and.(xla(jp).ge.5000..and.xla(jp).le.125000.))
       if(lin_cia.eq.1)
      *     SUMABS=SUMABS+H2PRES+HEPRES
       SUMABS=SUMABS*STIM
@@ -3158,7 +3267,7 @@ C        PER CM3) AND INNER ENERGY (E, IN ERGS PER GRAM) ARE ALSO EVALUATED.
 C        N O T E . RADIATION PRESSURE IS NOT INCLUDED IN E.
 C
 C        THE ENERGIES OF IONIZATION ARE REDUCED BY DXI, FOLLOWING BASCHEK ET 
-C        AL., ABH.HAMB. VIII, 26 EQ. (10). THESE REDUCTIONS ARE ALSO MADE IN
+C        AL., ABH. HAMB. VIII, 26 EQ. (10). THESE REDUCTIONS ARE ALSO MADE IN
 C        THE COMPUTATION OF E.
 C        THE ENERGY OF DISSOCIATION FOR H- HAS BEEN REDUCED BY 2*DXI, FOLLOWING
 C        TARAFDAR AND VARDYA, THIRD HARV. SMITHS. CONF., PAGE 143. THE FORMATION
@@ -3181,6 +3290,7 @@ C             STAGE, FOR ELEMENT I.
 C
 C
       include 'parameter.inc'
+C
       DIMENSION DQ(4),F(5),PFAK(5),RFAK(45)
       COMMON/CI1/FL2(5),PARCO(45),PARQ(180),SHXIJ(5),TPARF(4),
      *XIONG(16,5),EEV,ENAMN(ndp),SUMH(ndp),XKBOL,NJ(16),IEL(16),
@@ -4131,6 +4241,10 @@ C*
      &             PTURB(I),XKAPR(I),I
        end if
         pgx=PP(i)-PPR(i)-PPT(i)
+        ppallsum=ppappsum(i)+ppnonappsum(i)+ppat1sum(i)+ppel(i)
+      WRITE(6,2095) I,log10(TAU(I)),T(I),PPE(I),PPEL(I),
+     &  pgx,ppappsum(i),ppnonappsum(i),ppmolsum(i),ppat1sum(i),ppallsum,
+     &  ggrho(i),GGMU(I)
       IF (T(I).GT.TEFF) then
          iint = i
          if (t(i)-teff .gt. teff-t(i-1)) iint = i-1
@@ -12890,6 +13004,13 @@ C            CALL JON(T(K),PE(K),1,PGP,RO(K),EP,0)
             ppel(k) = ppelGG
             ggmu(k) = ggmuk
             ggrho(k) = ggrhok
+            ppsum(k) = ppsumk
+            ppappsum(k) = ppappsumk
+            ppnonappsum(k) = ppnonappsumk
+            ppat1sum(k) = ppat1sumk
+            ppat2sum(k) = ppat2sumk
+            ppmolsum(k) = ppmolsumk
+            ppgs(k) = ppgsk
             tg(k) = tgk
             pges(k) = pgesk
             ro(k) = ggrho(k)
@@ -14606,6 +14727,104 @@ C
       RETURN
       END
 
+      subroutine tioeq(NTAU,T,PE)
+      implicit real*8 (a-h,o-z)
+*
+* This subroutine calculates the balance between Ti I, Ti II and TiO. It
+* assumes that all titanium exists in one of these forms.
+* Method:  Calculate  q1 = n(Ti II)/n(Ti I) and q2 = n(TiO)/n(Ti I).
+*          Then  n(Ti I)*(1 + q1 + q2) = n(Ti(tot))
+*          n(Ti(tot)) = n(Ti)/n(H) * n(H)/density * density
+*                     = abund(Ti)  * 1/(xmy*xmh)  * density
+*          Finally, e.g.  p(TiO)=kT*n(Ti I)*q2 etc.
+* 
+* Output:  ptio (array of partial pressures (cgs units) for TiO at all depths)    
+*
+* PS: dissoc. Konstant aer updaterat.
+*****
+      include 'parameter.inc'
+      dimension qr(22),tqr(22),T(NDP),PE(NDP)
+*
+      common/ci5/abmarcs(17,ndp),anjon(17,5),h(5),part(17,5),
+     *dxi,f1,f2,f3,f4,f5,xkhm,xmh,xmy(ndp)
+      common /ketio/ptio(ndp),ro(ndp),poxg1(ndp)
+C      real    absc,abti,abv,abmn,abco                                   /auxabund/
+      common /auxabund/ absc,abti,abv,abmn,abco !                        /auxabund/
+      common /ti1ti2/ xnti1(ndp),xnti2(ndp)
+*
+      data tqr/1000., 1500., 2000., 2500., 3000., 3500., 4000., 4500.,
+     &         5000., 5500., 6000., 6500., 7000., 8000., 9000., 10000.,
+     &        12000., 14000., 16000., 18000., 20000., 50000./
+      data qr/1.708, 1.911, 2.035, 2.097, 2.112, 2.091, 2.042, 1.972,
+     &        1.887, 1.789, 1.684, 1.574, 1.462, 1.241, 1.032, 0.884,
+     &        0.541, 0.330, 0.194, 0.111, 0.062, 0.001/
+*
+* init (abundance of Ti)
+*
+      abti = 4.99
+*
+* epsti is the ratio  n(Ti)/n(H)
+*
+ccc      epsti=10.**(abti-12)
+      epsti=abmarcs(17,1)
+      write(6,668) abmarcs(17,1),abmarcs(1,1),abti,10.**(abti-12)
+668   format(' Tioqe: abund(17),(1),abti,10.**(abti-12):',1p4e10.3)
+*
+* div is the ratio  n(H)/rho   (cf. subr. injon)
+*
+      div = 1./(xmy(1)*xmh)
+*
+      write(6,*)' TIOEQ:i,t,q1,q2,log(ptio),poxg1'
+     &     ,',tiokp,xnti1,xnti2 '
+
+      do 10 i=1,ntau      
+        thta=5040./t(i)
+*
+* find the ratio  u(Ti II)/u(Ti I)  by interpolating in array qr
+*
+        j=1
+        do 2 jj=1,22
+          if(t(i).le.tqr(jj)) goto 3
+          j=jj
+    2   continue
+    3   uratio=qr(j) + (qr(j+1)-qr(j))/(tqr(j+1)-tqr(j))*(t(i)-tqr(j))
+*
+* q1 is the ratio  n(Ti II)/n(Ti I)
+*
+        q1=.6667*t(i)**2.5*uratio*exp(-6.82*11605./t(i))/pe(i)
+*
+* tiokp is the equilibrium constant for TiO
+* the constant -8.1756 correspond to a dissociation energy of 6.87eV
+*   ref: Huber&Herzberg 1979)
+*
+        tiokp=10.**( 13.398 + thta*(-8.1756 + thta*(.40873 +
+     &             thta*(-.057937 + thta*.0029287)))  )
+*
+* q2 is the ratio  n(TiO)/n(Ti I)
+*
+        q2=poxg1(i)/tiokp
+*
+* xnti1 is n(Ti I)    (i.e. per cm**3)
+*
+        xnti1(i)=epsti*ro(i)*div/(1.+q1+q2)
+        ptio(i)=1.38e-16*t(i)*xnti1(i)*q2
+        xnti2(i)=xnti1(i)*q1
+C
+        if (i/10*10.eq.i .or.i.eq.1) then
+         write(6,662) i,t(i),q1,q2
+     &        ,log10( max(ptio(i),1.d-99) )
+     &        ,poxg1(i),tiokp,xnti1(i),xnti2(i)
+662     format( i3,f7.0,1p2e9.2,0pf7.2,1p4e9.2 )
+C          write(6,*) ' i',i,' t',t(i),' pe',pe(i),
+C     &            ' pg',pg,' q1',q1,' q2',q2,' ptio',
+C     &             ptio(i),' poxg1(i)',poxg1(i)
+C          write(6,*) ' uratio',uratio
+        end if
+   10 continue
+*
+*
+      return
+      end
 
 
 
@@ -15097,12 +15316,248 @@ C------------------------------------------------------------
 C
 C
 
+       SUBROUTINE OSOPACITY                                    !
+C                                                              |
+C --------------------------------------------------------------
+C                                                              |
+C  'OSOPACITY' reads the OS-files (absorption coefficient in   |
+C  a number of wavelength points) for all molecules considered |
+C  in the spectrum calculation. 'OSOPACITY' is called from     |
+C  MAIN only once; it reads OPAC for all molecules and for all |
+C  OS wavenumber points and store them in an array.            |
+C  It also establish a wavenumber array, WNOS(1-NWNOS), which  |
+C  is stored in common-block CWNOS, and which contains the only|
+C  wavenumbers in which a spectrum can be computed from now on.|
+C -------------------------------------------------------------|
+C
+C
+      implicit real*8 (a-h,o-z)
+      include 'parameter.inc'
+C
+      CHARACTER ATMOS*60
+C
+      COMMON /CMODEL/TEFF,G,ABUND(16)
+     & ,TAUMOD(NDP),TATMOS(NDP),PE(NDP),PG(NDP),PRAD(NDP)
+     & ,PTURB(NDP),XKAPR(NDP),RO(NDP),EMU(NDP),PRESMP(NDP,99)
+     & ,XL(20),ABSKA(20,NDP),SPRIDA(20,NDP),NTAU,NLP,ATMOS
+ 
+      common /cabink/abink(ndp,nspec)
+      common /cgeminp/tcall(ndp),pcall(ndp),phecall(ndp),pecall(ndp) 
+      character name_gem*8
+      common /cgemnames/natms_gem,nions_gem,nspec_gem,name_gem(nspec)
+
+      common /cprespp/prespp(ndp,nspec) 
+
+
+       DO 3151 kd=1,NTAU
+       ptrans = 10.d0*pcall(kd)                             !pg+pe in dyn/cm^2
+       DO 3153 km=1,nspec
+       PRESPP(kd,km) = ptrans * abink(kd,km)      !*relative part.pres. = pp in dyn/cm^2
+3153   continue
+3151   continue
+
+C
+        RETURN
+        END
+C
+C
+Ckemi      PROGRAM KEMI
+Ckemi      implicit real*8 (a-h,o-z)
+CkemiC
+Ckemi       include 'parameter.inc'
+CkemiC
+CkemiC     parameter(nspec=892)
+Ckemi      common /cgem/pres_gem(ndp,nspec)
+Ckemi      common /cgemnames/natms_gem,nions_gem,nspec_gem,name_gem(nspec)
+CkemiC atms,ions,spec ~ highest index of neutral atoms, ions, species total
+Ckemi      character name_gem*8,adum*45
+Ckemi      common /cabink/abink(ndp,nspec)
+Ckemi      dimension ptot(ndp),pp_sum(ndp)
+CkemiC     common /cpartryck/partryck(ndp,nspec)           !gem computed pp
+Ckemi      common /cpartp/partp(ndp,nspec)           !gem computed pp
+Ckemi      common /cprespp/prespp(ndp,nspec)           !gem computed pp
+Ckemi      common /ctotabk/totabk(ndp,natms)
+Ckemi      dimension presmo(99)
+Ckemi      COMMON /CMODEL/TEFF,G,ABUND(17)  
+Ckemi     & ,TAUMOD(NDP),T(NDP),PE(NDP),PG(NDP),PRAD(NDP) 
+Ckemi     & ,PTURB(NDP),XKAPR(NDP),RO(NDP),EMU(NDP),PRESMP(NDP,99)
+Ckemi     & ,XL(20),ABSKA(20,NDP),SPRIDA(20,NDP),NTAU,NLP,ATMOS
+Ckemi      common /ckdtpe/dpex,kdtpe
+Ckemi
+Ckemi      common /fullequilibrium/ partryck(ndp,maxmol),
+Ckemi     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+Ckemi
+Ckemi      character namemol*4
+Ckemi      dimension namemol(18),pplist(3,ndp,18)
+Ckemi      dimension pe_gem(ndp),ptot1(ndp),dptot(ndp),pe1(ndp)
+Ckemi     &   ,dptot2(ndp),dpe2(ndp),dpe(ndp)
+
+Ckemi       open(unit=5,file='kemi.input',status='old')
+C
+
+
+      subroutine partf(jatom,ion,temp,ntemp,u,ndim)
+      implicit real*8 (a-h,o-z)
+
+*
+* yields partition functions with polynomial data from
+* ref. Irwin, A.W., 1981, ApJ Suppl. 45, 621.
+* ln u(temp)=sum(a(i)*(ln(temp))**i) 0<=a<=5
+* Input:
+* jatom = element number in periodic table
+*       NOT implemented for molecules; see ref. in ref.
+* ion   = 1 for neutral, 2 for once ionized and 3 for twice ionized
+* temp  = array with ntemp values of the temperature
+* ntemp = number of temperatures for which partf. is calculated
+* Output:
+* u     = partf. (linear scale) for iat,ion at the ntemp temperatures
+*
+C      implicit none
+*
+      integer ntemp,i,j,k,jatom,ion,iread
+      real*8 temp(ndim),u(ndim),sp,spec
+      real*8 a(0:5,1:3,1:92),ulog,t,aa(0:5)
+*
+      save iread,a
+*
+      data iread /0/
+*
+      if(ntemp.gt.ndim) then 
+          print*,'ntemp,ndim = ',ntemp,ndim
+          stop 'ntemp > ndim in partf()'
+      end if
+
+      if(iread.ne.1) then
+* read data if first call:
+
+        open(67,file= 'data/irwin.dat'
+     *    ,status='old',readonly)
+
+        read(67,*)
+        read(67,*)
+        do 20 j=1,92
+          do 10 i=1,3
+            if(j.eq.1.and.i.eq.3) goto 10
+            sp=dfloat(j)+dfloat(i-1)/100.
+            read(67,*) spec,aa
+            if(sp.ne.spec) then
+              print *,'sp.ne.spec:',sp,spec
+              stop 'Unexpected data read'
+            else
+              do 1 k=0,5
+                a(k,i,j)=aa(k)
+    1         continue
+            endif
+   10     continue
+   20   continue
+        close(67)
+        iread=1
+      endif
+
+
+      do 30 i=1,ntemp
+        if(temp(i).lt.600.) then
+          stop 'partf; temp<600 K'
+        else if(temp(i).gt.16000.) then
+          stop 'partf; temp>16000 K'
+        endif
+        t=log(dble(temp(i)))
+        ulog=   a(0,ion,jatom)+
+     &       t*(a(1,ion,jatom)+
+     &       t*(a(2,ion,jatom)+
+     &       t*(a(3,ion,jatom)+
+     &       t*(a(4,ion,jatom)+
+     &       t*(a(5,ion,jatom))))))
+        u(i)=dexp(ulog)
+   30 continue
+
+      return
+      end
+
+
+      subroutine takemolec(kk)
+      implicit real*8 (a-h,o-z)
+*
+* this routine is to be used after a call to jon,
+*  -if eqmol has been called also-, in order to get the pressures
+* one needs placed in the common 'fullequilibrium'.
+* This is the routine to change if one wants more or/and other
+* molecular pressure to be kept.
+* The values in the common fullequilibrium can then be used for
+* computation of opacities, printing, etc.
+* kk is the depth point to be adressed.
+* 020890 BPlez
+*
+* 13.09.94 Ch.Helling : change to be able to calculate all possible
+*                       molecules in tsuji_big.data
+*
+
+
+      include 'parameter.inc'
+      common /tsuji/ nattsuji,nmotsuji,parptsuji(500),abtsuji(17,ndp)
+      common /fullequilibrium/ partryck(ndp,maxmol),
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+      COMMON/CARC3/F1P,F3P,F4P,F5P,HNIC,PRESMO(33)
+* store the metals and ions
+* they are not yet indexed like in jon.
+
+      if(nattsuji.gt.maxmet) stop 'takemolec: maxmet too small'
+      do 30 j=1,nattsuji
+        xmettryck(kk,j)=parptsuji(j)
+        xiontryck(kk,j)=parptsuji(j+nattsuji)
+30    continue
+*
+* the indexes from 1 to 33 for partryck correspond to
+* the ones in presmo (common carc3).
+
+      partryck(kk,1)=parptsuji(2*nattsuji+1)
+      partryck(kk,2)=parptsuji(2*nattsuji+2)
+* H2+ (not self-consistent)
+      partryck(kk,3)=presmo(3)
+      do 10 j=4,16
+        partryck(kk,j)=parptsuji(2*nattsuji+j-1)
+10    continue
+      partryck(kk,17)=1.e-20
+      if (maxmol.lt.342) stop 'takemolec: maxmol too small !'
+  
+* number of molecules in molecBP+CB: 340 / 2.11.94
+
+      do 20 j=18,342
+       partryck(kk,j)=parptsuji(2*nattsuji+j-2)
+       partryck(kk,j)=max(partryck(kk,j),1.0d-99)
+20    continue
+
+*****
+      return
+      end
+
+
+*
+
+
+
+
+
+
+
+*
+C
+
+
+C
+C                                                           I
+C
+C
+      subroutine tstgem (tcal,pcal,ntau)
+
+!-----------------------------------------------------------------
+!
 !     This program is designed to test the GEM subroutines.
 !
 !     27/9-2000 JFF
 !
 !-----------------------------------------------------------------
-      subroutine tstgem (tcal,pcal,ntau)
+
       implicit real*8 (a-h,o-z)
       include 'parameter.inc'
 
@@ -16910,7 +17365,7 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       open(unit=70,file='marcs2ggchem.in', status='replace')
       write(70, '(19a)') '# selected elements'
       write(70, '(99a)') 'H He C N O Na Mg Si F Fe Al Ca Cr Ti S Cl K Li
-     & V Zr Be P el'
+     & V Zr Be P W el'
       write(70, '(38a)') '# name of files with molecular kp-data'
       write(70,'(a54)') 'dispol_BarklemCollet.dat             
      &   ! dispol_file '
@@ -16937,7 +17392,7 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       write(70,*) ptot/bar,'                   ! pmax [bar]   
      & (if pconst=.true.)'
       write(70,*) ptot/bar,'                   ! pmin [bar]'
-      write(70,'(a31)') '100                   ! Npoints'
+      write(70,'(a31)') '0                   ! Npoints'
       write(70,'(a33)') '5                     ! NewBackIt'
       write(70,'(a29)') '1000.0                ! Tfast'
       close(70)
@@ -16959,6 +17414,15 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       include 'parameter.inc'
 !      
 !     Partial pressures from GG-chem subroutine DEMO_SWEEP (ERC J=4)
+      common /partialpressure/
+     > ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,
+     > ppCS,ppH2O,ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,
+     > ppZrO,ppMgH,ppNH3,ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,
+     > ppHm,ppH2,ppH2p,ppHS,ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,
+     > ppS2,ppSiS,ppLaO,ppCH2,ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,
+     > ppCHNO,ppSiF2,ppAlCl,ppAlF,ppAlH,ppAlO,ppBeH,ppCaF,ppCH3F,ppCP,
+     > ppH2CO,ppHCl,ppHNO3,ppKCl,ppKF,ppLiCl,ppLiF,ppMgF,ppNaCl,ppNaF,
+     > ppNaH,ppPH3,ppPN,ppPO,ppPS,ppSH,ppSO2
 
       character atnames*2, molnames*8
       common /ggchemresults/
@@ -16971,12 +17435,8 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
 
       !print *, 'Calling GGchem'
       call system('./GGchem/ggchem marcs2ggchem.in')
-
-
-
-
       open(unit=990,file='GGchem_ppel')
-       read(990,*) Tg,pgesk,ppelGG,ggmuk,ggrhok,ggrhodust
+       read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ggrhodust
       close(990)
 
       open(unit=707,file='pp.dat')
@@ -16990,6 +17450,12 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
 708    format(i4,18x,a2)
 709    format(10a8)
       close(707)
+
+
+
+
+
+      call consistency(1)
  
       return
       end
@@ -17210,6 +17676,25 @@ C
               pp4(lk) = partgg(i)
         end if
 100   continue
+C      print 200,psumgg(k)
+C      if(kk.le.1) write(6,*)
+C     &  'k,ttgg(k),ppgg,psumgg,pp1,pp2,pp3,lkk{1,2,3}'
+C           k = kk
+C           write(6,210) k,ttgg(k),ppgg(k),psumgg(k)
+C     &    ,pp1(k),pp2(k),pp3(k),lkk1(k),lkk2(k),lkk3(k)
+C       if(kk.eq.ntau) then 
+C       write(6,212)
+C     > ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
+C     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+C      if(iwr.ge.2 ) then
+C      write(6,*) 'kk,iwr,ndp,ntau = ',kk,iwr,ndp,ntau
+C           write(6,*) 'Consistency check (ppgg from call to GGchem):'
+C           write(6,*)'k,ttgg(k),ppgg(k),psumgg(k)[dyn/cm2],lkk1-3(k)'
+C           do 120 k=1,1       !ntau
+C           write(6,200) k,ttgg(k),ppgg(k),psumgg(k),pp1(k),pp2(k),pp3(k)
+C     &    ,lkk1(k),lkk2(k),lkk3(k)
+C120        continue
+C       end if
 200   format(i3,f8.1,1p5e10.2,3i3)
 210   format(i3,f8.1,1p5e10.2,3i3)
 212   format(1p10e10.2)
