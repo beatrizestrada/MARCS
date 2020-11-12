@@ -355,12 +355,11 @@ C1313  format( ' before jon: k,t(k),pe(k): ',i3,f8.1,1p3e11.3)
        write(6,1321) peskal
 1320  format(' tskal:',7f8.1,6(/9f8.1))
 1321  format(' peskal:',1p7e10.2,7(/8e10.2))
-       end if
        write(6,1322) t
        write(6,1323) pe
 1322  format(' t:',7f8.1,6(/9f8.1))
 1323  format(' pe:',1p7e10.2,7(/8e10.2))
-
+      end if
       CALL JON(T(NTP),PE(NTP),1,PG,RO,DUM,IOUTR)
 
 C1314  format( ' after jon: k,t(k),pe(k),pg,ro: ',i3,f8.1,1p3e11.3)
@@ -4250,7 +4249,7 @@ C*
         pgx=PP(i)-PPR(i)-PPT(i)
         ppallsum= ppmolsum(i)+ppat1sum(i)+ppel(i)
       WRITE(6,2095) I,log10(TAU(I)),T(I),PPE(I),PPEL(I),
-     &  pgx,ppmolsum(i),ppat1sum(i),ppallsum,
+     &  pgx,ppappsum(i),ppnonappsum(i),ppmolsum(i),ppat1sum(i),ppallsum,
      &  ggrho(i),GGMU(I)
       IF (T(I).GT.TEFF) then
          iint = i
@@ -4262,7 +4261,7 @@ C*
      & 'Pe-GGchm',1x,'Pg-solve',1x,'PPapsum',2x,'PPnon-ap',1x,
      & 'PPmolsum',1x,'PPatsum',2x,'PPallsum',3x,
      & 'roGG',3x,'muGG')
-2095  FORMAT(I2,F6.2,F7.1,1P7E9.2,0pf5.2)
+2095  FORMAT(I2,F6.2,F7.1,1P9E9.2,0pf5.2)
       write(6,*)
      &'Tgg and PPgg are the temp and Pg transfered in call to GGchem'
       write(6,*)
