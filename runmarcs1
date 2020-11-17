@@ -24,8 +24,8 @@ cp mxms7a.input  mxms7.input
 cp models/t25g45mol52K2.arciv arcivaaa.dat
 ./marcs_test7
 
-mv mxmodel.dat     	$CWD/models/t25g45mol52K2c.dat
-mv arcivaab.dat    	$CWD/models/t25g45mol52K2c.arciv
+mv mxmodel.dat     	$CWD/models/t25g45mol52K2_gg.dat 
+mv arcivaab.dat    	$CWD/models/t25g45mol52K2_gg.arciv
 #***************************
 
 mv GGchem_ppel     	$CWD/GGchem_ppel
@@ -34,7 +34,11 @@ mv MOL2.dat        	$CWD/MOL2.dat
 mv test.dat        	$CWD/test.dat
 mv pp.dat        	$CWD/pp.dat
 mv wlos.dat        	$CWD/wlos.dat
-mv marcs2ggchem.in      $CWD/marcs2ggchem.in
+mv GGchem_molpp.dat        	$CWD/GGchem_molpp.dat
+mv GGchem_molsum.dat        	$CWD/GGchem_molsum.dat
+mv PartialPressures.dat     	$CWD/PartialPressures.dat
+mv runetest.dat     	$CWD/runetest.dat
+mv allpp.dat     	$CWD/allpp.dat
 
 rm spectrum.dat
 rm fort.*

@@ -326,7 +326,7 @@ C
 C        LOOP OVER THE T-PE POINTS ('THE FIRST NTP-LOOP')
       DO4 NTP=1,NT
       T(NTP)=TSKAL(NTP)
-      print *, "PE SKAL",PESKAL(NTP)
+C      print *, "PE SKAL",PESKAL(NTP)
       PE(NTP)=PESKAL(NTP)
 C        IS PRINT-OUT WANTED FOR T-PE POINT NO. NTP
       IOUTR=0
@@ -344,9 +344,6 @@ C
 C      write(6,*) ' calling jon, j,kl,ntp = ',j,kl,ntp
 C       write(6,1313) ntp,t(ntp),pe(ntp)
 C1313  format( ' before jon: k,t(k),pe(k): ',i3,f8.1,1p3e11.3)
-      print *, "pe(ntp)",pe(ntp)
-      print *, "ntp", ntp
-      print *, "nt", nt
       if(pe(ntp).le.1.e-33) then
        write(6,*) ' ***** now we are in trouble:'                   
        write(6,*) ' maxmol,maxmet = ',maxmol,maxmet
@@ -958,7 +955,6 @@ C        THIS IS CERTAINLY QUITE UNIMPORTANT FOR MOST MODELS.
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),ISTAN2,JSTAN2,ABSKA(1),SPRIDA(1))
       else if(metpe.eq.2) then
-      print *, "calling metpe equals2 w/ ggchem pe inside archiv time 1"
       CALL ABSKO(1,1,T(K),PPEL(K),ISTAN2,JSTAN2,ABSKA(1),SPRIDA(1))
       end if
 
@@ -1085,7 +1081,6 @@ C
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),1,J,ABSKA(1),SPRIDA(1))
       else if(metpe.eq.2) then
-      print *, "calling metpe equals2 w/ ggchem pe inside archiv time 2"
       CALL ABSKO(1,1,T(K),PPEL(K),1,J,ABSKA(1),SPRIDA(1))
       end if
       ABSKTR(J)=ABSKA(1)
@@ -1103,7 +1098,6 @@ C     IF(ABS(TAUK-KTAU).GT.0.02) GO TO 40
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),1,J,ABSKA(1),SPRIDA(1))
       else if(metpe.eq.2) then
-      print *, "calling metpe equals2 w/ ggchem pe inside archiv time 3"
       CALL ABSKO(1,1,T(K),PPEL(K),1,J,ABSKA(1),SPRIDA(1))
       end if
       IF(J.GT.1)GO TO 31
@@ -3775,7 +3769,6 @@ C
       COMMON /CXLSET/XL(20,10),NSET,NL(10)
 C
 C COMPUTE KAPPA(5000.). 73.10.17 *NORD*.
-      print *, "absko call in jon"
       CALL ABSKO(1,1,T,PE,1,NL(1)+1,ABSK,SPRID)
       RETURN
       END
@@ -4243,10 +4236,12 @@ C*
       WRITE(7,209) I,TAU(I),TAUS(I),Z(I),T(I),PE(I),PG(I),PRAD(I),
      &             PTURB(I),XKAPR(I),I
       else if(metpe.eq.2) then
+      print *, "pg before written in model", PG(I)
       WRITE(7,209) I,TAU(I),TAUS(I),Z(I),T(I),PPEL(I),PG(I),PRAD(I),
      &             PTURB(I),XKAPR(I),I
        end if
         pgx=PP(i)-PPR(i)-PPT(i)
+        print *, "pgx", pgx
         ppallsum= ppmolsum(i)+ppat1sum(i)+ppel(i)
       WRITE(6,2095) I,log10(TAU(I)),T(I),PPE(I),PPEL(I),
      &  pgx,ppappsum(i),ppnonappsum(i),ppmolsum(i),ppat1sum(i),ppallsum,
@@ -4929,7 +4924,6 @@ C output from GEM:
 
        do 120 i=1,jtau
        pg(i)=pp(i)-ppr(i)-ppt(i)
-       print *, "pg at", i, "is ", pg(i)
 CV20   phe(i) = pg(i) * totabk(i,3)/(totabk(i,2)+totabk(i,3))
        phe(i) = (pg(i)-pe(i)) * totabk(i,3)/(totabk(i,2)+totabk(i,3))
        trpe(i) = 0.1d0 * pe(i)
@@ -4964,6 +4958,7 @@ CV20   p_particles = pg(kd) + pe_gem(kd)         !pg(input)+pe(computed) in dyn/
        do 2209 i=1,jtau
 CV20   ptot(i)=pe(i)+pg(i)
        ptot(i)=pg(i)
+       print *, "ptot in line 4959", ptot(i)
 2209   continue
 
       k = 0
@@ -7293,14 +7288,14 @@ C   ******** HERE WE ASSUME THAT THE FIRST SET IS USED FOR ROSSELAND MEAN
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM,JMEM,ABSK,SPRID)
       else if(metpe.eq.2) then
-      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 1"
+C      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 1"
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM,JMEM,ABSK,SPRID)
       end if
       NEWT=0
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM1,JMEM1,ABSK1,SPRID1)
       else if(metpe.eq.2) then
-      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 2"
+C      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 2"
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM1,JMEM1,ABSK1,SPRID1)
       end if
 
@@ -7329,7 +7324,7 @@ C        NEW COMPUTATION OF CONTINOUOS ABSORPTION COEFFICIENT
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM1,JMEM1,ABSK1,SPRID1)
       else if(metpe.eq.2) then
-      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 3"
+C      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 3"
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM1,JMEM1,ABSK1,SPRID1)
       end if
 
@@ -7594,7 +7589,7 @@ C
       COMMON /CPF/PF,PFE,PFD,FIXROS,ITSTOP
       LOGICAL PF,PFE,PFD,FIXROS,ITSTOP
       DATA NEWT/2/
-      print *, "absko call in rossop function"
+C      print *, "absko call in rossop function"
       CALL ABSKO(NEWT,1,T,PE,1,0,RSP,DUM)
       NEWT=1
       ROSSOP=RSP
@@ -12838,8 +12833,9 @@ C        end if
 CV20    ptot(k)=pe(k)+pp(k)-ppr(k)-ppt(k)
 
         ptot(k)=pp(k)-ppr(k)-ppt(k)
-        print *, "layer", k
-        print *, "pg", ptot(k)
+        print *, "ptot line 12833", ptot(k)
+C        print *, "layer", k
+C        print *, "pg", ptot(k)
 2111    continue
 
 
@@ -13043,15 +13039,30 @@ C ------------ USING GGCHEM TO COMPUTE PARTIALPRESSURES ------------
 C            CALL JON(T(K),PE(K),1,PGP,RO(K),EP,0)
             call init_ggchem_ERC(k,t(k),ptot(k))
             ppel(k) = ppelGG
+            print *, "GG chem called and these are the results inside",
+     &      "MARCS"
+            print *, "k", k
+            print *, "ppel(k)", ppel(k)
             ggmu(k) = ggmuk
+            print *, "ggmu(k)", ggmu(k)
             ggrho(k) = ggrhok
-            ppsum(k) = ppsumk
+            print *, "ggrho(k)", ggrho(k)
             ppat1sum(k) = ppat1sumk
+            print *, "ppat1sum(k)", ppat1sum(k)
             ppmolsum(k) = ppmolsumk
+            print *, "ppmolsum(k)", ppmolsum(k)
             ppgs(k) = ppgsk
+            print *, "ppgs(k)", ppgs(k)
             tg(k) = tgk
+            print *, "tg(k)", tg(k) 
             pges(k) = pgesk
-            ro(k) = ggrho(k)   
+            print *, "pges(k)", pges(k)
+            ro(k) = ggrho(k)
+            print *, "ro(k)", ggrho(k)
+            ppsum(k) = ppmolsumk 
+            ppappsum(k) = ppsumk
+            ppnonappsum(k) = 0.0
+            ppat2sum(k) = 0.0  
 C            pe(k) = ppelGG   !brings GGchem Pe into STATEC => mess up
           end if
         
@@ -15337,7 +15348,9 @@ C
        trpe(i) = 0.1d0 * pe(i)
 CV20   ptot(i) = pg(i) + pe(i)
        ptot(i) = pg(i)
+       print *, "ptot before convert", ptot(i)
        ptot(i) = 0.1d0 * ptot(i)     !1N/m^2 = 10 dynes/cm^2
+       print *, "ptot after", ptot(i)
        trphe(i) = (0.1d0 * phe(i)) / ptot(i)
 C      if(i.eq.1.or.i.eq.27.or.i.eq.47)
 C    &          write(6,782) i,t(i),pg(i),pe(i),trphe(i)
@@ -20144,18 +20157,18 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
 ! Intiates ggchem input
 ! ERC 2018i
 !-----------------------------------------------------------------------
-      subroutine init_ggchem_ERC(k,tt,ptot)
+      subroutine init_ggchem_ERC(k,tt,pres)
     
       implicit real*8 (a-h,o-z)
       include 'parameter.inc'
 
-      real*8,intent(in) :: tt,ptot
+      real*8,intent(in) :: tt,pres
       common /consistgginit/ttgg(ndp),ppgg(ndp),kk
       print *, "temperature ggchem called with", tt
-      print *, "pressure ggchem called with", ptot
+      print *, "pressure ggchem called with", pres
       lk=k
       ttgg(lk) = tt
-      ppgg(lk) = ptot
+      ppgg(lk) = pres
       kk=lk
 
       bar=1.Q+6
@@ -20172,24 +20185,17 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
      &         ! dispol_file3'
       write(70,'(a64)') '# abundance options 1=EarthCrust, 2=Ocean,
      & 3=Solar, 4=Meteorites'
+      write(70, '(a34)')'.false.               ! pick_mfrac'
       write(70,'(a34)') '3                     ! abund_pick'
       write(70,'(a27)') '# equilibrium condensation?'
       write(70,'(a36)') '.false.               ! model_eqcond'
+      write(70,'(a42)') '.true.                ! remove_condensates'
       write(70,'(a15)') '# model options'
       write(70,'(a42)') '0                     ! model_dim  (0,1,2)'
-      write(70,'(a36)') '.true.                ! model_pconst'
-!      open(unit=10,file='s',status='old')
-
-!      write(70,"(F4.1,a26)") tt, '                ! Tmax [K]'
-!      write(70,"(F4.1,a48)") tt-1,'                ! Tmin [K]     
+      write(70,'(a36)') '.true.                ! model_pconst'    
       write(70,*) tt, '                ! Tmax [K]'
-      write(70,*) tt,'                ! Tmin [K] 
-
-     & (if model_dim>0)'
-      write(70,*) ptot/bar,'                   ! pmax [bar]   
-     & (if pconst=.true.)'
-      write(70,*) ptot/bar,'                   ! pmin [bar]'
-      write(70,'(a31)') '0                   ! Npoints'
+      write(70,*) pres/bar,'                   ! pmax [bar]'   
+      write(70,*) pres/bar,'                   ! pmin [bar]'
       write(70,'(a33)') '5                     ! NewBackIt'
       write(70,'(a29)') '1000.0                ! Tfast'
       close(70)
@@ -20255,21 +20261,27 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
        read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ppat1sumk,ppmolsumk
       close(990)
      
-      ppgsk = ppelGG + ppmolsumk + ppat1sumk 
-      print *, "pressure from ggchem", pges
-      print *, "temp from ggchem", Tg
+      ppgsk = ppelGG + ppmolsumk + ppat1sumk
+      print *, "Immediately after ggchem is called these are the",
+     & "values read in marcs" 
+      print *, "pges", pges
+      print *, "Tg", Tg
       print *, "ele pressure", ppelGG
       print *, "pp atoms", ppat1sumk
       print *, "pp molecules", ppmolsumk
-      print *, "sum pp read in marcs", ppgsk
+      print *, "ppgsk", ppgsk
+      print *, "ggmuk", ggmuk
+      print *, "ggrhok", ggrhok
 
       open(unit=707,file='pp.dat')
        read(707,*) (ppallat(k,m),m=1,22)
        read(707,*) (ppallmol(k,m),m=1,543)
        if(k.eq.1) then
        read(707,708) ((km,atnames(m)),m=1,22)
+C       print *, ((km,atnames(m)),m=1,22),(ppallat(k,m), m=1,22)
        read(707,*) 
        read(707,709) (molnames(m),m=1,543)
+C       print *, (molnames(m),m=1,543),(ppallmol(k,m), m=1,543)
 C       write(6,709) (molnames(m),m=1,543)
        end if
 708    format(i4,18x,a2)
