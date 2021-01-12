@@ -63,8 +63,8 @@ C      STEFF=5770
       common /newmo/newmod
       common /cmolrat/ fold(ndp,8),molold,kl
       common /fullequilibrium/ partryck(ndp,maxmol),
-     *  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),
-     *  partp(ndp,0:maxmol)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
       common /cisph/isph
       common /clist/nlte
       common/ci5/abmarcs(17,ndp),anjon(17,5),h(5),part(17,5),
@@ -89,17 +89,12 @@ C      STEFF=5770
       open(unit=111,file='partf.dat')
 
       read(5,'(6(7x,i3,5x))') itmax,nprint,newmod,noarch,jontyp,idust
-      write(7,'(5(7x,i3,5x))') itmax,nprint,newmod,noarch,jontyp,idust
       
       read(5,'(7x,i3,12x,a3,2(12x,i3),12x,a3)') jump,sampling,molold,
-     *  nlte,pp_sph
-      write(7,'(7x,i3,12x,a3,2(12x,i3),12x,a3)') jump,sampling,molold,
      *  nlte,pp_sph
 
       if(pp_sph.eq.'sph' .or. pp_sph.eq.'SPH') isph = 1
 
-      write(7,'(a8,i3,a11,a3,a8,i2)') ' itemax=',itmax,' sampling= ',
-     *  sampling,' molold=',molold
 
       call oldsta
       call mainb
@@ -129,13 +124,11 @@ C      STEFF=5770
 
       metals = 0
       do im = 1,nosmol
-        write(6,'(a18,i3,a45)') ' im,molname(im) = ', im, molname(im)
         if(molname(im).eq. 'ATOM') metals = im
         if(molname(im).eq.'CH4 ' .and. jump.eq.0) then 
           stop ' P(CH4) not comp. by old Marcs eq.; set JUMP>0'
         end if
       end do
-      write(6,*) ' IM for metals = ', metals
       if(metals.ge.1) call osinit        ! atomic lines included in computation
 
       read(5,outlist)
@@ -179,7 +172,6 @@ C      STEFF=5770
       onemor=.false.
 
       do it=1,itmax 
-        write(6,*) ' **** NOW ITERATION ',it,' IS STARTING ****'
         write(66,*)' **** NOW ITERATION ',it,' IS STARTING ****'
         write(111,*) 'Iteration' , it
         print *
@@ -194,8 +186,6 @@ C      STEFF=5770
         else 
           call solve(1)
         end if
-        write(6,*) ' **** NOW AFTER CALL TO SOLVE **** '
-        write(6,*) 'pe(1)= ',ppe(1)
         
         if(newmod.eq.2) go to 102
         if(newmod.eq.9) goto 101
@@ -206,8 +196,6 @@ C      STEFF=5770
           call matrix
         end if
         
-        write(6,*) 'pe(1)= ',ppe(1)
-        write(6,*) ' **** NOW AFTER CALL TO MATRIX ***** '
       
         call newsta
         
@@ -223,7 +211,6 @@ C      STEFF=5770
       call newsta
 102   continue
       call archiv(22)
-      write(6,*) ' **** NOW calling listmo  **** '
       call listmo(1,22,isph)
 
 ! Save model
@@ -304,7 +291,8 @@ C      PARAMETER (KFADIM=4000,IFADIM=1000)
      &             ,FT,FTE
       COMMON /DENSTY/ ROTEST(NDP),PRH2O(NDP)
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
       COMMON /CMOLRAT/ FOLD(NDP,8),MOLOLD,KL
       COMMON /CMETPE/ PPEL(NDP), METPE
       INTEGER MOLH, JUMP
@@ -326,7 +314,6 @@ C
 C        LOOP OVER THE T-PE POINTS ('THE FIRST NTP-LOOP')
       DO4 NTP=1,NT
       T(NTP)=TSKAL(NTP)
-C      print *, "PE SKAL",PESKAL(NTP)
       PE(NTP)=PESKAL(NTP)
 C        IS PRINT-OUT WANTED FOR T-PE POINT NO. NTP
       IOUTR=0
@@ -341,54 +328,26 @@ C
         molhs=molh
         molh =0
       endif
-C      write(6,*) ' calling jon, j,kl,ntp = ',j,kl,ntp
-C       write(6,1313) ntp,t(ntp),pe(ntp)
-C1313  format( ' before jon: k,t(k),pe(k): ',i3,f8.1,1p3e11.3)
-      if(pe(ntp).le.1.e-33) then
-       write(6,*) ' ***** now we are in trouble:'                   
-       write(6,*) ' maxmol,maxmet = ',maxmol,maxmet
-       write(6,*) ' ntp,nt,j = ',ntp,nt,j
-       write(6,1320) tskal
-       write(6,1321) peskal
-1320  format(' tskal:',7f8.1,6(/9f8.1))
-1321  format(' peskal:',1p7e10.2,7(/8e10.2))
-       write(6,1322) t
-       write(6,1323) pe
-1322  format(' t:',7f8.1,6(/9f8.1))
-1323  format(' pe:',1p7e10.2,7(/8e10.2))
+
+      if(pe(ntp).le.1.e-99) then
+        print *, "Electron pressure too small in ABSKO"
       end if
+
       CALL JON(T(NTP),PE(NTP),1,PG,RO,DUM,IOUTR)
 
-C1314  format( ' after jon: k,t(k),pe(k),pg,ro: ',i3,f8.1,1p3e11.3)
-C      write(6,1314) ntp,t(ntp),pe(ntp),pg,ro
 
       if(j.le.0) then
         molh=molhs
         rosav(ntp)=ro
         poxg1(ntp)=pe(ntp)*foe
 
-**********18.12.94 
-
         IF (JUMP.GE.1) THEN
          prh2o(ntp)=partryck(ntp,4)
          ELSE
+c        presmo(4) is pressure of H2O, need to check this
          prh2o(ntp)=presmo(4)
         ENDIF
         
-         if (ntp.le.0) then
-         write(6,*) 'ntp (must be NE 0 for dimension)',ntp
-         write(6,*) 'prh2o(ntp)      : ', prh2o(ntp)
-         write(6,*) 'partryck(ntp,4) : ',partryck(ntp,4)
-         write(6,*) 'should be equal'
-         end if
-*   well, it is / 11.1.95
-
-*
-* it works but it starts with ntp = 0 --> is that right ???
-* yes it is, because ntp=0 means optical depth=0 and that means you start on
-* the surface of the star
-*
-***********
       endif
 
       CALL DETABS(J,0,NTP,IOUTR)
@@ -533,68 +492,7 @@ C
       RETURN
       END
 
-C*
-C*NEW PDS MEMBER FOLLOWS
-C*
-      SUBROUTINE ACCEL(CORR,N)
-      implicit real*8 (a-h,o-z)
-C
-      DIMENSION CORR(40), CORRO(40), KONV(40), CORRUT(40)
-      DATA NCALL/0/
-C
-      IF(NCALL.EQ.0) THEN
-        DO 10 I=1,N
-          KONV(I) = 0
-          CORRO(I) = CORR(I)
-   10   CONTINUE
-        NCALL = NCALL + 1
-        RETURN
-      ENDIF
-C
-      MAXCOR=0
-      DO 40 I=1,N
-C
-        IF(CORR(I)*CORRO(I).GT.0.) THEN
-          KONV(I)=KONV(I) + 1
-        ELSE
-          KONV(I)=0
-        ENDIF
-C
-        MAXCOR=MAX0(MAXCOR,KONV(I))
-        CORRO(I)   = CORR(I)
-   40 CONTINUE
-C
-      IF(MAXCOR.LT.2) RETURN
-C
-      IF(KONV(1).EQ.5) THEN
-        CORRUT(1) = 5.*CORR(1)
-      ELSE IF(KONV(2).EQ.5) THEN
-        CORRUT(1) = 2.*CORR(1)
-      ENDIF
-      DO 50 I=2,N-1
-        IF(KONV(I).EQ.5) THEN
-          CORRUT(I) = 5.*CORR(I)
-        ELSE IF(KONV(I+1).EQ.5 .OR. KONV(I-1).EQ.5) THEN
-          CORRUT(I) = 2.*CORR(I)
-        ENDIF
-   50 CONTINUE
-      IF(KONV(N).EQ.5) THEN
-        CORRUT(N) = 5.*CORR(N)
-      ELSE IF(KONV(N-1).EQ.5) THEN
-        CORRUT(N) = 2.*CORR(N)
-      ENDIF
-C
-      DO 60 I=1,N
-        CORR(I) = CORRUT(I)
-        KONV(I) = 0
-   60 CONTINUE
-C
-      WRITE(7,65) (CORR(I),I=1,N)
-   65 FORMAT(1X,10F7.1)
-C
-      RETURN
-      END
-C
+************************************************************************
       SUBROUTINE AINV3(A,M)
       implicit real*8 (a-h,o-z)
 C
@@ -695,7 +593,7 @@ C        DENNA RUTIN LOESER TAANSPORTEKVATIONEN MED FEAUTRIERS METOD,
    60 CONTINUE
       RETURN
       END
-*
+**********************************************************************
       subroutine algebn(n)
       implicit real*8 (a-h,o-z)
 *
@@ -846,7 +744,7 @@ c
 *
       return
       end
-C
+**********************************************************************
       SUBROUTINE ARCHIV(LUN)
       implicit real*8 (a-h,o-z)
 C
@@ -854,6 +752,7 @@ C        THIS ROUTINE STORES ALL INTERESTING INFORMATION ON A MODEL ON
 C        FORTRAN FILE IARCH. MOREOVER, IT PUNCES CARDS FOR BELL'S USE.
 C
       include 'parameter.inc'
+      
 C
       CHARACTER*1  DAY(10)
       CHARACTER*10 DAG,KLOCK
@@ -900,16 +799,28 @@ C        COMMON SHARED BY DETABS
       common /cmtest/pem1(ndp),pem2(ndp)
      *     ,tm1(ndp),tm2(ndp),pgos(ndp)
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
       COMMON /CMETPE/ PPEL(NDP), METPE
       common /ggchemmu/ggmu(NDP),ggrho(NDP),ppsum(ndp),ppappsum(ndp),
      &   ppnonappsum(ndp),tg(ndp),pges(ndp)
      &  ,ppat1sum(ndp),ppat2sum(ndp),ppmolsum(ndp),ppgs(ndp)
-
+c        COMMON SHARED BY GGCHEM
+      common /ggchemresults/
+     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
+     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,gg_partpp(ndp,75)
+     >                ,presmogg(33),ppat(22),ppmol(543)
+     >                ,idmarcspres,idggchempres
+     >                ,idmarcspart,idggchempart
+     >                ,atnames(22),molnames(543), molnames2(75) 
+      
       CHARACTER*8 SOURCE,ABNAME
       INTEGER MOLH, JUMP
+C     
 C
-C
+      print *, "archiv called"
       IARCH=LUN
       ISTAN2=1
       JSTAN2=NL(1)+1
@@ -996,9 +907,6 @@ CUGJ981018      MOLH=MOLHO
        if (k.eq.1) write(6,*) 'calling termo from archiv'
       CALL TERMO(k,T(K),PPEL(K),PRAD(K),PTOT,RRO,CP,CV,AGRAD,Q,U2)
         rro = ggrho(k)
-C      common /ggchemmu/ggmu(NDP),ggrho(NDP),ppsum(ndp),ppappsum(ndp),
-C     &   ppnonappsum(ndp),tg(ndp),pges(ndp)
-C     &  ,ppat1sum(ndp),ppat2sum(ndp),ppmolsum(ndp),ppgs(ndp)
       end if
       FORE=(ABSKA(1)+SPRIDA(1))/XKAPR(K)
       FURE=1./(XKAPR(K)*RRO)
@@ -1093,7 +1001,6 @@ C
       KL=K
       TAUK=log10(TAU(K))+10.01
       KTAU=TAUK
-C     IF(ABS(TAUK-KTAU).GT.0.02) GO TO 40
       DO32 J=1,NLP
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),1,J,ABSKA(1),SPRIDA(1))
@@ -2673,6 +2580,10 @@ C we come here only if dimension for the OS is too small:
       stop ' error: increase dimension nwl in parameter.inc for wnos '
 241   continue
 
+      write(7,*) ' We did a resolution based set of os wavenumbers'
+      write(7,245) nwtot,osresl/dfloat(kos_step)
+     & ,kos_step*step,wnos(1),wnos(nwtot)
+     & ,1.e4/wnos(nwtot),1.e4/wnos(1)
       write(6,*) ' We did a resolution based set of os wavenumbers'
       write(6,245) nwtot,osresl/dfloat(kos_step)
      & ,kos_step*step,wnos(1),wnos(nwtot)
@@ -2953,6 +2864,8 @@ C and other routines from gem_init by common CI5.
         print *, 'Error: cannot scale abundances in this version'
         stop
       end if
+      write(7,*) ' abund(1-17):'
+      write(7,101) (abinit(i),i=1,17)
       write(6,*) ' abund(1-17):'
       write(6,101) (abinit(i),i=1,17)
       write(6,222)
@@ -3289,6 +3202,7 @@ C             STAGE, FOR ELEMENT I.
 C
 C
       include 'parameter.inc'
+      character atnames*2, molnames*8
 C
       DIMENSION DQ(4),F(5),PFAK(5),RFAK(45)
       COMMON/CI1/FL2(5),PARCO(45),PARQ(180),SHXIJ(5),TPARF(4),
@@ -3307,14 +3221,24 @@ C
       COMMON/CMOL2/PK(33),NMOL
       COMMON/CARC3/F1P,F3P,F4P,F5P,HNIC,PRESMO(33)
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     & xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partpx(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
+C      common /fullequilibrium/ partryck(ndp,maxmol),
+C     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
       COMMON/CPHYDRO/PHYDRO
       COMMON /CMOLRAT/ FOLD(NDP,8),MOLOLD,KL
       COMMON /PJONINF/ P_MOL(NDP), P_NEU_HCNO(NDP), P_ION_HCNO(NDP),
      & P_NEU_HE(NDP),P_ION_HE(NDP), P_NON_HHECNO(NDP), PG_JON(NDP), 
      & HN_JON(NDP), RO_JON(NDP), P6_JON(NDP)
-
-      INTEGER MOLH, JUMP
+      integer, dimension(75) :: idmarcspart, idggchempart
+      integer, dimension(32) :: idmarcspres, idggchempres       
+      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,gg_partpp(ndp,75)
+     >                ,presmogg(33),ppat(22),ppmol(543)
+     >                ,idmarcspres,idggchempres
+     >                ,idmarcspart,idggchempart
+     >                ,atnames(22),molnames(543), molnames2(75)
+        INTEGER MOLH, JUMP
 C      REAL PHYDRO
 C        STATEMENT FUNCTION FOR 10.**
       EXP10(X)=EXP(2.302585*X)
@@ -3838,7 +3762,9 @@ C      COMMON/COPPRR/xconop(120,10),xlineop(120,10)    !100wn,10dpt
       COMMON /CLIN/lin_cia
       COMMON /CNEWC3 /NEWC3
       COMMON /CG/GRAV,KONSG
-      COMMON /CSTYR/MIHAL,NOCONV /CXMAX/XMAX /CTAUM/TAUM
+      COMMON /CSTYR/MIHAL,NOCONV 
+      common /cirinp/ steff,irrin        !irrin=1~comp.irrad,steff=rad*
+      COMMON /CXMAX/XMAX /CTAUM/TAUM
       COMMON /MIXC/PALFA,PBETA,PNY,PY /CVFIX/VFIX                          
       COMMON /CPOLY/FACPLY,MOLTSUJI
       COMMON /CROSSOS/ ROSSO(NDP),PTAUO(NDP)
@@ -3850,9 +3776,9 @@ C      COMMON/COPPRR/xconop(120,10),xlineop(120,10)    !100wn,10dpt
      *0.318,0.126,0.019/,VW/0.006,0.077,0.434,1.455,2.207,2.703,2.872,
      *2.738,2.505,2.219,1.890,1.567,1.233,0.918,0.680,0.474,0.312,0.200,
      *0.132,0.096,0.069,0.053,0.037,0.022,0.012/
-      COMMON /FULLEQUILIBRIUM/ PARTRYCK(NDP,MAXMOL),
-     &  XMETTRYCK(NDP,MAXMET),XIONTRYCK(NDP,MAXMET),PARTP(NDP,0:MAXMOL),
-     & PARTPP(NDP,0:MAXMOL)
+      common /fullequilibrium/ partryck(ndp,maxmol),
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
       common /tsuji/ nattsuji,nmotsuji,parptsuji(500),abtsuji(17,ndp)
       COMMON /CMTEST/PEM1(NDP),PEM2(NDP)
      *     ,TM1(NDP),TM2(NDP),PGOS(NDP)
@@ -3885,11 +3811,14 @@ C atms,ions,spec ~ highest index of neutral atoms, ions, species total
       common /ctotabk/totabk(ndp,natms)
       dimension pe_gem(ndp)
       COMMON /CMETPE/ PPEL(NDP), METPE
+      common /dpeset/ dpein,dtin
+      COMMON /CORRECT/KORT,KPP,TCONV
       common /ggchempe/PPEL_OLD(NDP),PE_OLD(NDP)
       common /ggchemmu/ggmu(NDP),ggrho(NDP),ppsum(ndp),ppappsum(ndp),
      &   ppnonappsum(ndp),tg(ndp),pges(ndp)
      &  ,ppat1sum(ndp),ppat2sum(ndp),ppmolsum(ndp),ppgs(ndp)
       character atnames*2, molnames*8
+      
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
      &     ,ppm(ndp),ppp(ndp),ppnmol(ndp),ppamol(ndp),ppnat(ndp)
      &     ,pp24(ndp),pp54(ndp),pp24m(ndp),pp54m(ndp)
@@ -3905,10 +3834,10 @@ C The 54 molecules we have absorption coefficients for (May 2020) are:
       data osnames /
      & 'C2  ','CAH ','CH  ','CN  ','CO  ','CO2 ','FEH ','H2O ','HCN ',
      & 'MGH ','NH  ','OH  ','SIH ','SIO ','TIH ','TIO ','CRH ','NO  ',
-     & 'LIH ','VO  ','ZRO ','H2  ','C2H2','C3  ','ALCl','ALF ','ALH ',
+     & 'LIH ','VO  ','ZRO ','H2  ','C2H2','C3  ','ALCL','ALF ','ALH ',
      & 'ALO ','BEH ','CAF ','CH3F','CH4 ','CP  ','CS  ','H2CO','HCL ',
      & 'HNO3','KCL ','KF  ','LICL','LIF ','MGF ','NACL','NAF ','NAH ',
-     & 'NH3 ','NS  ','PH3 ','PN  ','PO  ','PS  ','SH  ','SIS ','SO2 '/
+     & 'NH3 ','SN  ','PH3 ','PN  ','PO  ','PS  ','HS  ','SIS ','SO2 '/
 C the 15 of the 22 neutral atoms we list in the output (...dat) are:
       dimension kpratoms(15)
       data kpratoms /1, 2,3,4,5,6, 7, 8, 10,11,12,13,14,15,17/
@@ -3943,11 +3872,15 @@ C 442    443    445    447    454    455    458   459    460   463    464     46
 C SI-    TI-    V-     LIF2-  LI-    LIO-   ZR-
 C 473    475    477    510    521    525    531
 C 
-      dimension kprmol(15)
-      data kprmol/1,3,4,5,26,58,59,192,350,185,354,173,205,214,92/
+      dimension k1mol(15)
+      data k1mol/1,3,4,5,26,58,59,192,350,185,354,173,205,214,92/
 C   H2 C2 N2 O2 CH CN CO CO2 H2O CH4 NH3 HCN C2H2 C3 TiO
+      dimension k2mol(15)
+      data k2mol/28,31,32,35,36,122,37,38,222,39,40,41,86,61,212/
 C   OH MgH AlH HS HCl NaCl KH CaH CaOH TiH CrH FeH SiO SiC SiC2
-C   CS VO CrO FeO ZrO SiS AlOH KOH SiC2 FeS H2S PH3 TiO2 O3 TiC
+      dimension k3mol(15)
+      data k3mol/63,93,94,95,96,115,141,337,336,353,351,355,374,376,532/
+C   CS VO CrO FeO ZrO SiS AlOH KOH FeS H2S H2SO4 PH3 TiO2 O3 TiC
 
 
 C There are 409 neutral molecules:
@@ -4066,21 +3999,33 @@ C        CONVERT TO 'PHYSICAL FLUX'
      &  abmarcs(5,1)/8.51138e-4,abmarcs(3,1)/abmarcs(5,1),PALFA,PNY,PY
       end if
       WRITE(7,2011) NOCONV 
-      IF(PBETA.LE.0.) WRITE(7,256)
-      IF(PBETA.GT.0.1) WRITE(7,257) PBETA
       IF(ISTRAL.LT.1) WRITE(7,250) ISTRAL
       IF(ISTRAL.GE.1) WRITE(7,251) ISTRAL
-      IF(ILINE.LT.1) WRITE(7,252) ILINE
-      IF(ILINE.GE.1) WRITE(7,253) ILINE
+      IF(PBETA.LE.0.) WRITE(7,256)
+      IF(PBETA.GT.0.1) WRITE(7,257) PBETA
+      WRITE(7,2010) MIHAL
+C      IF(ILINE.LT.1) WRITE(7,252) ILINE
+C      IF(ILINE.GE.1) WRITE(7,253) ILINE
       WRITE(7,2531) RELM
       IF (isph.ne.1) THEN 
       WRITE(7,2539)
       ENDIF
+      write(7,516) steff,irrin        !irrin=1~comp.irrad,steff=rad*
+516   FORMAT('The irradiation parameters, steff and irrin:',F8.0,2X,I3)
+C      write(7,518) KONSG,KORT,KPP,TCONV
+C518   FORMAT(' KONSG,KORT,KPP,TCONV:',3(2X,I3,2X),2X,F8.0)
+      write(7,518) KORT,KPP,TCONV
+518   FORMAT(' convergence adjustment and criteria KORT,KPP,TCONV:',
+     &     2(2X,I3,2X),F8.0)
+      write(7,517) dpein,dtin,metpe
+517   FORMAT('derivative steps in solve: dpein,dtin  and method-pe:',
+     &    2F7.4,i3)
       write(7,1105) xionfix
 1105  format(' To increase Pe, ionization of element 12 (K=Potasium) ',
      *   'was set to',f8.3,' eV in jonabs.dat (real value: 4.339 eV)')
       WRITE(7,2532) NOSMOL
-2532  format(' Following ',i3,' molecules are included in opacity:')
+2532  format(' Following ',i3,' molecules are included in opacity ',
+     &       '(names are from namelist in OS-file):')
       WRITE(7,2533) (MOLNAME(I),I=1,NOSMOL)
 2533  FORMAT(18(2X,A4))
       write(7,*) ' from the following inputfiles:'
@@ -4093,7 +4038,7 @@ C        CONVERT TO 'PHYSICAL FLUX'
 
       IF (losresl.eq.1) THEN
         write(7,*) ' We did a resolution based set of os wavenumbers'
-        write(6,2551) nwtot,osresl/dfloat(kos_step),osresl,kos_step
+        write(7,2551) nwtot,osresl/dfloat(kos_step),osresl,kos_step
      &  ,wnos(1),wnos(nwtot),1.e4/wnos(nwtot),1.e4/wnos(1)
 C23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
 2551   format(' Total ',i6,' OS wavenumbers for Marcs radiative transf.'
@@ -4115,7 +4060,7 @@ C23456789 123456789 123456789 123456789 123456789 123456789 123456789 12
       END IF
 
       if (lin_cia.eq.1) write(7,2529)
-      WRITE(7,2012) XMAX, TAUM, facply, moltsuji
+      if(facply.ne.1.0) WRITE(7,2012) XMAX, TAUM, facply, moltsuji
       if (jump.eq.2) then
        WRITE(7,2018)
       else if (jump.eq.4) then
@@ -4236,13 +4181,11 @@ C*
       WRITE(7,209) I,TAU(I),TAUS(I),Z(I),T(I),PE(I),PG(I),PRAD(I),
      &             PTURB(I),XKAPR(I),I
       else if(metpe.eq.2) then
-      print *, "pg before written in model", PG(I)
       WRITE(7,209) I,TAU(I),TAUS(I),Z(I),T(I),PPEL(I),PG(I),PRAD(I),
      &             PTURB(I),XKAPR(I),I
        end if
         pgx=PP(i)-PPR(i)-PPT(i)
-        print *, "pgx", pgx
-        ppallsum= ppmolsum(i)+ppat1sum(i)+ppel(i)
+        ppallsum=ppappsum(i)+ppnonappsum(i)+ppat1sum(i)+ppel(i)
       WRITE(6,2095) I,log10(TAU(I)),T(I),PPE(I),PPEL(I),
      &  pgx,ppappsum(i),ppnonappsum(i),ppmolsum(i),ppat1sum(i),ppallsum,
      &  ggrho(i),GGMU(I)
@@ -4530,6 +4473,17 @@ C  337     338     339    340
                 partpp(j,2)=partpp(j,10)
                 partpp(j,10)=partpp(j,218)
         end do
+
+
+C Here comes the listing of the original (until July 2020) of partial
+C pressure blocksfrom partpp(j,mol). In July 2020 I (UGJ) changed the
+C listing to follow the GGchem termonology and being adjustable by
+C defining molk1, molk2, molk3 in the data statement ti thei (listmo)
+C subroutine. To skip the old listing set mollistold = 0OB
+
+        mollistold = 0
+        if (mollistold.eq.0) go to 2150
+
 ! H, H-, H2, H2+, H2O, OH, CH, CO, CN, C2, N2, O2, NO, NH, TiO
 ! 0   1   2   3     4   5   6   7   8   9  10  11  12  13   31
         WRITE(7,2132)
@@ -4641,15 +4595,23 @@ C 32  33  34  36  37 39  40  41  43  46  57   58   59   67  107 135
         end do
 2149    FORMAT(' K ',15(3x,a5))
 
-C Here comes output blocks for selected of the 22 atoms and 543
-C molecules directly from GGchem; select which by chancing the index
-C numbers below; do not put more than 15 species per block
+C go here if you don't want the old pp-mol listing in output (molold=0):
+2150    continue
 
 
-        open(unit=9,file='allpp.dat',status='unknown')
+C Here comes output blocks for selected of the 22 atoms and 543 molecules directly from GGchem; 
+C Select which by chancing the index numbers in the data statements kions, kpratoms, k1mol, k2mol, k3mol
+C in the top of the LISTMO subroutine ; do not put more than 15 species per output block.
+C With time these ought to be the only partial pressure listing in the atmosphere data files.
+C Unit=90 is an output file with more infor on the partial pressures than stored in the model atmosphere files.
 
 
-        write(9,*)'nos,idos(nos),k j,ipos, osnames(k), molnames(j)'
+C        open(unit=90,file='allpp.dat',status='unknown')
+
+
+C The OS-molecules:
+        write(90,*)'The 54 molecules we have OS files for are:'
+        write(90,*)'nos,idos(nos),k j,ipos, osnames(k), molnames(j)'
         nos = 0
         do 4201 k=1,54
         do 4200 j=1,543
@@ -4660,28 +4622,53 @@ C numbers below; do not put more than 15 species per block
         if (ipos.ne.1) go to 4200
         nos = nos + 1
         idos(nos) = j
-        write(9,4204) nos,idos(nos),k,j,ipos, osnames(k), molnames(j)
+        write(90,4204) nos,idos(nos),k,j,ipos, osnames(k), molnames(j)
 4204    format(5i4,2x,a4,2x,a8)
         go to 4201
 4200    continue
 4201    continue
 C
-        write(9,4202) nos
+4218    format('there were no GGchem partial pressure for OS molecule:')
+        write(90,*) 'noggos,k,ipos, osnames(k)'
+4219    format(3i4,2x,a4)
+        noggos = 0
+        write(90,4218)
+        do 4226 k=1,54
+        do 4225 j=1,nos
+        ipos = 0
+        ipos = index(molnames(idos(j)),osnames(k))
+        if (ipos.ne.1) go to 4225
+        go to 4226
+4225    continue
+        noggos = noggos + 1
+        write(90,4219) noggos,k,ipos, osnames(k)
+4226    continue
+      WRITE(90,4232) NOSMOL
+4232  format(' Following ',i3,
+     &       ' molecules are included in opacity for this calculation:')
+      WRITE(90,4233) (MOLNAME(I),I=1,NOSMOL)
+4233  FORMAT(18(2X,A4))
+C
+        write(90,*)
+        write(90,*)
+     &  'Compute partial pressure sums of molecules with known OS:'
+
+        write(90,4202) nos
 4202    format('There are',i4,
-     &    ' os molecules with known GGchem partial pressure:')
-        WRITE(9,4203) (molnames(idos(j)),j=1,nos)
-        WRITE(9,4208) (idos(j),j=1,nos)
+     &    ' OS molecules with known GGchem partial pressure:')
+        WRITE(90,4203) (molnames(idos(j)),j=1,nos)
+        WRITE(90,4208) (idos(j),j=1,nos)
 4203    format(9A8)
 4208    format(9i8)
 C
 C
-        write(9,4205) 
-4205    format('There are 54 os molecules in total:')
-        WRITE(9,4206) (osnames(j),j=1,54)
+        write(90,4205) 
+4205    format('There are 54 OS molecules in total that we have '
+     &      ,'line lists for:')
+        WRITE(90,4206) (osnames(j),j=1,54)
 4206    format( 9(a4,4x) )
+
 C
-C                WRITE(7,4225),jtau,nos
-C4225    format('sum[pp{24,54(j),j=1,nos], jtau,nos=',2i4)
         do 4220 i=1,jtau
         pp24(i) = 0.
         pp54(i) = 0.
@@ -4691,10 +4678,9 @@ C4225    format('sum[pp{24,54(j),j=1,nos], jtau,nos=',2i4)
 4221    continue
            pp24m(i) = pp24(i)-ppallmol(i,1)
            pp54m(i) = pp54(i)-ppallmol(i,1)
-C          WRITE(7,'(I4,2F8.3)')I,log10(max(1.e-99,pp24(i)))
-C     &                          ,log10(max(1.e-99,pp54(i)))
 4220    continue
 
+C The positive and negative ions:
         natplus = 0
         do 3200 j=1,543
         ipos = 0
@@ -4704,20 +4690,17 @@ C     &                          ,log10(max(1.e-99,pp54(i)))
         idplus(natplus) = j
 3200    continue
 
-        write(9,3201) natplus
+        write(90,3201) natplus
 3201    format('There are',i4,' positive ions:')
-        WRITE(9,3253) (molnames(idplus(j)),j=1,natplus)
-        WRITE(9,4209) (idplus(j),j=1,natplus)
+        WRITE(90,3253) (molnames(idplus(j)),j=1,natplus)
+        WRITE(90,4209) (idplus(j),j=1,natplus)
 4209    format(15i8)
 
-C                WRITE(7,3225),jtau,natplus
-C3225    format('sum[ppp(j),j=1,natplus], jtau,natplus=',2i4)
         do 3220 i=1,jtau
         ppp(i) = 0.
         do 3221 j=1,natplus
         ppp(i) = ppp(i)+ppallmol(i,idplus(j))
 3221    continue
-C                WRITE(7,'(I4,F8.3)')I,log10(max(1.e-99,ppp(i)))
 3220    continue
 
         natminus = 0
@@ -4729,22 +4712,20 @@ C                WRITE(7,'(I4,F8.3)')I,log10(max(1.e-99,ppp(i)))
         idminus(natminus) = j
 3203    continue
 
-        write(9,3204) natminus
+        write(90,3204) natminus
 3204    format(/'There are',i4,' negative ions:')
-        WRITE(9,3253) (molnames(idminus(j)),j=1,natminus)
-        WRITE(9,4209) (idminus(j),j=1,natminus)
+        WRITE(90,3253) (molnames(idminus(j)),j=1,natminus)
+        WRITE(90,4209) (idminus(j),j=1,natminus)
 
-C                WRITE(7,3224),jtau,natminus
-C3224    format('jtau,natminus:',2i4i,' k, sum of {pos-ions, neg-ions}')
         do 3226 i=1,jtau
         ppm(i) = 0.
         do 3223 j=1,natminus
         ppm(i) = ppm(i)+ppallmol(i,idminus(j))
 3223    continue
-C          WRITE(7,'(I2,2F8.3)')I,log10(max(1.e-99,ppp(i)))
-C     &                          ,log10(max(1.e-99,ppm(i)))
 3226    continue
 
+
+C The neutral molecules:
         neutralmol = 0
         do 3205 j=1,543
         ipos = 0
@@ -4756,27 +4737,22 @@ C     &                          ,log10(max(1.e-99,ppm(i)))
         idmol(neutralmol) = j
 3205    continue
 
-        write(9,3206) neutralmol
+        write(90,3206) neutralmol
 3206    format(/'There are',i4,' neutral molecules:')
-        WRITE(9,3207) (molnames(idmol(j)),j=1,neutralmol)
-        WRITE(9,3210) (idmol(j),j=1,neutralmol)
+        WRITE(90,3207) (molnames(idmol(j)),j=1,neutralmol)
+        WRITE(90,3210) (idmol(j),j=1,neutralmol)
 3207    FORMAT(2x,15a8)
 3210    FORMAT(2x,15i8)
 
-C                WRITE(7,*)' I,pot ions,  neg-ions, neutr mol:'
         do 3227 i=1,jtau
         ppnmol(i) = 0.
         do 3228 j=1,neutralmol
         ppnmol(i) = ppnmol(i)+ppallmol(i,idmol(j))
 3228    continue
-C          patp=   log10(max(1.e-99,ppp(i)))
-C          patm =  log10(max(1.e-99,ppm(i)))
-C          pnmol = log10(max(1.e-99,ppnmol(i)))
-C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
 3227    continue
 
-
-        WRITE(9,3202) (atnames(j),j=1,22)
+C The neutral atoms:
+        WRITE(90,3202) (atnames(j),j=1,22)
 3202    format(/'There are 22 neutral atoms:', 22(1x,a2,1x))
  
         do 3145 jm=1,2
@@ -4784,17 +4760,13 @@ C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
         jmax = jmin+14
         if(jmin.gt.22) go to 3146
         if(jmax.ge.22) jmax=22
-        WRITE(9,2233)
+        WRITE(90,2233)
 2233    FORMAT(//' P A R T I A L  P R E S S U R E S ',
      &    ' of all the 22 neutral atoms from GGchem')
-        WRITE(9,3148) (atnames(j),j=jmin,jmax)
-        WRITE(9,3211) (j,j=jmin,jmax)
-        WRITE(7,3148) (atnames(j),j=jmin,jmax)
+        WRITE(90,3148) (atnames(j),j=jmin,jmax)
+        WRITE(90,3211) (j,j=jmin,jmax)
         DO I=1,JTAU
-                WRITE(9,'(I2,15F8.3)')I,
-     *          (log10(max(1.e-99,(ppallat(i,j)))),J=jmin,jmax)
-              if(i.eq.1 .or. i.eq.jtau)
-     *           WRITE(7,'(I2,15F8.3)')I,
+                WRITE(90,'(I2,15F8.3)')I,
      *          (log10(max(1.e-99,(ppallat(i,j)))),J=jmin,jmax)
         end do
 
@@ -4813,8 +4785,8 @@ C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
 3211    FORMAT(2x,15(1x,i6,1x))
 
         WRITE(7,2235)
-2235    FORMAT(//' P A R T I A L  P R E S S U R E S   ',
-     &  ' of 15 selected ions of the 82+52=134 calculated in GGchem')
+2235    FORMAT(//' P A R T I A L  P R E S S U R E S   of ',
+     &  '13 selected ions of the 82(+)+52(-)=134 calculated in GGchem')
         WRITE(7,2236) (molnames(kions(j)),j=1,13)
         DO I=1,JTAU
               patp=   log10(max(1.e-99,ppp(i)))
@@ -4824,18 +4796,36 @@ C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
            WRITE(7,'(I2,15F8.3)')I,
      *     (log10(max(1.e-99,ppallmol(i,kions(j)))),J=1,13),patp,pelbal
         END DO
-2236    FORMAT(5x,13(a8),'ions+ pe+ions-')
+2236    FORMAT(5x,12(a8),a6,' ions+  pe+ions-')
 
 
         WRITE(7,2239)
-2239    FORMAT(//' P A R T I A L  P R E S S U R E S   of 15 ',
-     &  'selected neutral molecules of the 409 calculated in GGchem')
-        WRITE(7,2153) (molnames(kpratoms(j)),j=1,15)
+2239    FORMAT(//' P A R T I A L  P R E S S U R E S   of 15 iselected ',
+     &  'neutral molecules (k1mol) of the 409 calculated in GGchem')
+        WRITE(7,2240) (molnames(k1mol(j)),j=1,15)
         DO I=1,JTAU
                  WRITE(7,'(I2,15F8.3)')I,
-     *          (log10(max(1.e-99,ppallmol(i,kprmol(j)))),J=1,15)
+     *          (log10(max(1.e-99,ppallmol(i,k1mol(j)))),J=1,15)
+        END DO
+2240    FORMAT(5x,14a8,a6)
+
+        WRITE(7,2241)
+2241    FORMAT(//' P A R T I A L  P R E S S U R E S   of 15 selected ',
+     &  'neutral molecules (k2mol) of the 409 calculated in GGchem')
+        WRITE(7,2240) (molnames(k2mol(j)),j=1,15)
+        DO I=1,JTAU
+                 WRITE(7,'(I2,15F8.3)')I,
+     *          (log10(max(1.e-99,ppallmol(i,k2mol(j)))),J=1,15)
         END DO
 
+        WRITE(7,2242)
+2242    FORMAT(//' P A R T I A L  P R E S S U R E S   of 15 iselected ',
+     &  'neutral molecules (k3mol) of the 409 calculated in GGchem')
+        WRITE(7,2240) (molnames(k3mol(j)),j=1,15)
+        DO I=1,JTAU
+                 WRITE(7,'(I2,15F8.3)')I,
+     *          (log10(max(1.e-99,ppallmol(i,k3mol(j)))),J=1,15)
+        END DO
 
            do 3229 i=1,jtau
            ppnat(i) = 0.
@@ -4843,17 +4833,39 @@ C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
            ppnat(i) = ppnat(i)+ppallat(i,j)
 3229       continue
 
+        WRITE(7,2243)
+2243    FORMAT(//' P A R T I A L  P R E S S U R E S  -- overview of all'
+     &  ,' the 565 neutral and ionized species from GGchem'/
+     &  ,10x,'22 neutral atoms (atnames), 409 neutral molecules, '
+     &  ,'82 positive ions, 52 negative ions (molnames):')
+ 
+        do 2245 jm=1,2
+        jmin=(jm-1)*15 + 1
+        jmax = jmin+14
+        if(jmin.gt.22) go to 3150
+        if(jmax.ge.22) jmax=22
+        WRITE(7,3148) (atnames(j),j=jmin,jmax)
+                WRITE(7,'(2x,15(2x,i3,3x))')((j),J=jmin,jmax)
+        DO I=1,JTAU,jtau-1
+                WRITE(7,'(I2,15F8.3)')I,
+     *          (log10(max(1.e-99,(ppallat(i,j)))),J=jmin,jmax)
+        end do
+2245    continue
+3150    continue
+
         do 3143 jm=1,37
         jmin=(jm-1)*15 + 1
         jmax = jmin+14
         if(jmin.gt.543) go to 3144
         if(jmax.ge.543) jmax=543
-        WRITE(9,2133)
-        WRITE(9,3147) TEFF,GLOG,jm,jmin,jmax
-        WRITE(9,2153) (molnames(j),j=jmin,jmax)
-        WRITE(7,2153) (molnames(j),j=jmin,jmax)
+        WRITE(90,2133)
+        WRITE(90,3147) TEFF,GLOG,jm,jmin,jmax
+        WRITE(90,3153) (molnames(j),j=jmin,jmax)
+                WRITE(90,'(2x,15(2x,i3,3x))')((j),J=jmin,jmax)
+        WRITE(7,3153) (molnames(j),j=jmin,jmax)
+                WRITE(7,'(2x,15(2x,i3,3x))')((j),J=jmin,jmax)
         DO I=1,JTAU
-                WRITE(9,'(I2,15F8.3)')I,
+                WRITE(90,'(I2,15F8.3)')I,
      *          (log10(max(1.e-99,(ppallmol(i,j)))),J=jmin,jmax)
                 if(i.eq.1 .or. i.eq.jtau)
      *          WRITE(7,'(I2,15F8.3)')I,
@@ -4863,12 +4875,23 @@ C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
 3143    continue
 3144    continue
 2153    FORMAT(' K ',15a8)
+3153    FORMAT(5x,15a8)
 3253    FORMAT(15a8)
 3147    FORMAT(/' TEFF=',F6.0,' LOG G=',F5.1,6X,'jm,jmin,jmax=',3i4/)
-
+        WRITE(7,2247)
+2247    FORMAT(//' P A R T I A L  P R E S S U R E S  -- '
+     &      ,'illustrative sums')
          write(7,3238)
-         WRITE(7,*)'I   pat+    pat-  pnat pnmol psum pel  pel-stat ',
-     &    '  pp24mh2  pp54mh2 ppH2  ppCH4  ppNH3  ppH2O  ppH  ppHe'
+3238     format(/'positive ions   negative ions  neutral atoms '
+     &  ,' neutral molecules  sum{el,at,mol}  electron pres '
+     &  ,'  static el.pres' 
+     &  ,/' pp24(without H2)  pp54(without H2)  ppH2  ppCH4  ',
+     &   'ppNH3  ppH2O  ppH  ppHe ')
+
+         WRITE(7,2248)
+2248     format(/' I   pat+    pat-    pnat    pnmol    psum    pel  ',
+     &    'pel-stat pp24mh2 pp54mh2   ppH2   ppCH4   ppNH3   ppH2O',
+     &    '    ppH    ppHe')
 
            do 3231 i=1,jtau
            ppamol(i) = 0.
@@ -4901,16 +4924,13 @@ C          WRITE(7,'(I2,3F8.3)')I,patp,patm,pnmol
      &      ,pph2ok,pphk,pphek
 3231       continue
 
-3238     format(/'positive ions   negative ions  neutral atoms '
-     &  ,' neutral molecules  sum{el,at,mol}  electron pres '
-     &  ,'  static el.pres'
-     &  ,' pp24mk  pp54mk  ppH2  ppCH4  ppNH3  ppH2O  ppH  ppHe ')
-
 
       END IF
-      GO TO 2109
 
-      close(9)
+      write(7,*)
+      write(7,*)
+      close(90)
+      GO TO 2109
 
 !------------ END OF  WRITING PP FOR JUMP = 4 -----------
 
@@ -4943,10 +4963,10 @@ CV20   pe_gem(kd) = pg(kd) * abink(kd,1) / (1.d0 - abink(kd,1))
 CV20   p_particles = pg(kd) + pe_gem(kd)         !pg(input)+pe(computed) in dyn/cm^2
        p_particles = pg(kd)                      !pg(input)+pe(computed) in dyn/cm^2
        pp_sum(kd) = 0.
-       DO 3153 km=1,nspec
+       DO 3152 km=1,nspec
        PRESPP(kd,km) = p_particles * abink(kd,km)  !(pg+pe)*rel.pp = pp in dyn/cm^2
        if(km.gt.1) pp_sum(kd) = prespp(kd,km) + pp_sum(kd)
-3153   continue
+3152   continue
 3151   continue
 
         write(6,*) ' pg/pp_sum {1-jtau} in listmo after GEM call:'
@@ -4958,7 +4978,6 @@ CV20   p_particles = pg(kd) + pe_gem(kd)         !pg(input)+pe(computed) in dyn/
        do 2209 i=1,jtau
 CV20   ptot(i)=pe(i)+pg(i)
        ptot(i)=pg(i)
-       print *, "ptot in line 4959", ptot(i)
 2209   continue
 
       k = 0
@@ -5075,15 +5094,16 @@ C     end if
 
       WRITE(7,1900)
 1900  format(' A B S O R P T I O N   C O E F F I C I E N T S  [CM/MOL]')
-      WRITE(7,300) TEFF,GLOG,IDRAB1,IDRAB2,IDRAB3,IDRAB4,IDRAB5,IDRAB6
+C      WRITE(7,300) TEFF,GLOG,IDRAB1,IDRAB2,IDRAB3,IDRAB4,IDRAB5,IDRAB6
 
       WRITE(7,1906) (MOLNAME(I),I=1,NOSMOL)
 1906  FORMAT(' K',52(2X,A4))
       DO 2074 k=1,JTAU
       do 2076 i=1,nosmol
 2076  SUMOP(I,K)= max(1.d-99, SUMOP(I,K) )
-      write(7,2073) k,( log10(SUMOP(I,K)),I=1,NOSMOL )
+      write(7,2078) k,( log10(SUMOP(I,K)),I=1,NOSMOL )
 2074  continue
+2078  format(i3,52f6.2)
 
       write(7,*)' '
       write(7,*)' '
@@ -5400,7 +5420,6 @@ C        COMPUTE U, B, V, R, I AND COLOURS
       WRITE(7,273) UMAG,BMAG,VMAG,RMAG,XIMAG
 
 
-      call consistency(2)
 
       write(6,5190)
       write(6,5192)
@@ -5455,7 +5474,8 @@ C        COMPUTE U, B, V, R, I AND COLOURS
      +//' CONVECTION PARAMETERS'/
      +' PALFA (L/HP)=',F5.2,',  PNY (NY)=',F5.2,',  PY (Y)=',F6.3)
  2011 FORMAT(' Convection was, however, excluded in the uppermost'
-     +    ,I4,' layers')
+     +    'NOCONV=',I4,' layers')
+ 2010 FORMAT(' the Mihalas parameter was MIHAL=',I4,' layers')
  2012 FORMAT(' XMAX, TAUM, facply, moltsuji = ',1pe8.1,0p2f8.1,i3)
  2013 FORMAT(' Molecular equilibrium was treated by Tsujis routine')
  2014 FORMAT(' Molecular equilibrium was treated by the Marcs routin')
@@ -5465,8 +5485,8 @@ C        COMPUTE U, B, V, R, I AND COLOURS
 20182 FORMAT(' Electronpressure for continuum opacities was',
      &          ' from GGChem')
  2019 FORMAT(' Molecular equilibrium was by Gibbs Energy Minimisation')
-  256 FORMAT(' TURBULENCE PRESSURE IS NEGLECTED (PBETA<=0.)'/)
-  257 FORMAT(' TURBULENCE PRESSURE IS INCLUDED AND PBETA=',F5.2/)
+  256 FORMAT(' TURBULENCE PRESSURE IS NEGLECTED (PBETA<=0.)')
+  257 FORMAT(' TURBULENCE PRESSURE IS INCLUDED AND PBETA=',F5.2)
   250 FORMAT(' CONVECTION HAS BEEN INCLUDED IN THIS MODEL; ISTRAL=',I3)
   251 FORMAT(' CONVECTION HAS  N O T  BEEN INCLUDED IN THIS MODEL; '
      *  ,'ISTRAL=',I3)
@@ -5615,7 +5635,8 @@ C
 C
       COMMON /UTPUT/IREAD,IWRIT
       COMMON /CG/GRAV,KONSG /CTEFF/TEFF,FLUX
-      COMMON /CSTYR/MIHAL,NOCONV /CXMAX/XMAX /CTAUM/TAUM
+      COMMON /CSTYR/MIHAL,NOCONV 
+      COMMON /CXMAX/XMAX /CTAUM/TAUM
       COMMON /MIXC/PALFA,PBETA,PNY,PY /CVFIX/VFIX                          
       COMMON /CANGLE/XMY(6),XMY2(6),H(6),MMY
       COMMON /CARC1/ISTRAL,IDRAB1,IDRAB2,IDRAB3,IDRAB4,IDRAB5,IDRAB6,
@@ -5627,7 +5648,7 @@ C
       COMMON /CPOLY/FACPLY,MOLTSUJI
       COMMON /CMETBL/METBL
       COMMON /MASSE/RELM
-     COMMON /CMETPE/ PPEL(NDP), METPE
+      COMMON /CMETPE/ PPEL(NDP), METPE
       COMMON /CLEVETAT/GEFF(NDP),PPRG(NDP),AMLOSS
       COMMON /CLIN/lin_cia
       COMMON /CORRECT/KORT,KPP,TCONV
@@ -5684,7 +5705,6 @@ CUGJ      ILINE=0
       ISTRAL=0
       READ(5,631) NOCONV,XMAX,TAUM,FACPLY,METBL
       write(6,632) NOCONV,XMAX,TAUM,FACPLY,METBL
-      write(7,632) NOCONV,XMAX,TAUM,FACPLY,METBL
       IF(METBL.GT.1) METBL=1
       IF(TAUM.EQ.0.) TAUM=50.
       IF(XMAX.EQ.0.) XMAX=1.E10
@@ -5701,8 +5721,11 @@ CUGJ      ILINE=0
       end if
       READ(5,51) MIHAL,KONSG,KORT,KPP,TCONV
       write(6,51) MIHAL,KONSG,KORT,KPP,TCONV
-      write(7,51) MIHAL,KONSG,KORT,KPP,TCONV
+C      write(7,518) MIHAL,KONSG,KORT,KPP,TCONV
+C518   FORMAT(' MIHAL,KONSG,KORT,KPP,TCONV:',4(2X,I3,2X),2X,F8.0)
       read(5,635) lops,nops,dpein,dtin,metpe
+C      write(7,517) dpein,dtin,metpe
+C517   FORMAT(' dpein,dtin,metpe:',2F8.5,i3)
       write(6,*)'lops,nops= ',lops,nops,' dpein,dtin= ',dpein,dtin
 C
 C CONVECTION PARAMETERS
@@ -5715,7 +5738,8 @@ C
       READ(5,51) MMY,NCORE,KDIFF,IRRIN,STEFF
       write(6,*)' MMY,NCORE,KDIFF,IRRIN,STEFF:'
       write(6,51) MMY,NCORE,KDIFF,IRRIN,STEFF
-      write(7,51) MMY,NCORE,KDIFF,IRRIN,STEFF
+      write(7,519) MMY,NCORE,KDIFF,IRRIN,STEFF
+519   FORMAT('MMY,NCORE,KDIFF,IRRIN,STEFF:',4(2X,I3,2X),2X,F8.0)
       TAURAT=10.**(0.1*KDIFF-0.01)
 C
       ACALL = 0.0D+0
@@ -5748,6 +5772,9 @@ C
       WRITE(6,59)NOCONV
       WRITE(6,57)MIHAL
       WRITE(6,571)KONSG,KORT,KPP
+      WRITE(7,59)NOCONV
+      WRITE(7,57)MIHAL
+      WRITE(7,571)KONSG,KORT,KPP
       WRITE(6,58)MMY
       WRITE(6,69)FACPLY
       WRITE(6,66)XMAX
@@ -5765,7 +5792,7 @@ C
 56    FORMAT(20X,'PY     =',F10.3)
 57    FORMAT(20X,'MIHAL  =',I5)
 571   FORMAT(20X,'KONSG  =',I5,'  KORT  =',I5,'  KPP  =',I5)
-58    FORMAT(20X,'MYPNTS =',I10,'(no use for spherical)')
+58    FORMAT(20X,'MYPNTS =',I10,'(for spherical only)')
 59    FORMAT(/20X,'NOCONV =',I10)
 60    FORMAT('0* MODEL PARAMETERS')
 61    FORMAT(/20X,'TEFF   =',F10.0,10X,'LOG (L/LSUN)=',F5.2,10X,
@@ -7288,14 +7315,12 @@ C   ******** HERE WE ASSUME THAT THE FIRST SET IS USED FOR ROSSELAND MEAN
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM,JMEM,ABSK,SPRID)
       else if(metpe.eq.2) then
-C      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 1"
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM,JMEM,ABSK,SPRID)
       end if
       NEWT=0
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM1,JMEM1,ABSK1,SPRID1)
       else if(metpe.eq.2) then
-C      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 2"
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM1,JMEM1,ABSK1,SPRID1)
       end if
 
@@ -7324,7 +7349,6 @@ C        NEW COMPUTATION OF CONTINOUOS ABSORPTION COEFFICIENT
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM1,JMEM1,ABSK1,SPRID1)
       else if(metpe.eq.2) then
-C      print *, "calling metpe equals2 w/ ggchem pe inside OPAC time 3"
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM1,JMEM1,ABSK1,SPRID1)
       end if
 
@@ -7589,7 +7613,7 @@ C
       COMMON /CPF/PF,PFE,PFD,FIXROS,ITSTOP
       LOGICAL PF,PFE,PFD,FIXROS,ITSTOP
       DATA NEWT/2/
-C      print *, "absko call in rossop function"
+C
       CALL ABSKO(NEWT,1,T,PE,1,0,RSP,DUM)
       NEWT=1
       ROSSOP=RSP
@@ -12625,6 +12649,7 @@ C
       implicit real*8 (a-h,o-z)
 C
        include 'parameter.inc'
+       character atnames*2, molnames*8
 C
 C OS-TABle-LOOK-up is called 3 time for each itteration (from OPAC with
 C J=1, called from SOLVE with T,Pe, T+dT,Pe, T,Pe+dPe). 
@@ -12736,20 +12761,6 @@ C atms,ions,spec ~ highest index of neutral atoms, ions, species total
       INTEGER MOLH, JUMP
       DATA FIRST/.TRUE./
 
-!     Partial pressures from GG-chem subroutine DEMO_SWEEP (ERC JUMP = 4)
-!      common /partialpressure/
-!     > ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,ppCS,ppH2O,
-!     > ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,ppZrO,ppMgH,ppNH3,
-!     > ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,ppHm,ppH2,ppH2p,ppHS,
-!     > ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,ppS2,ppSiS,ppLaO,ppCH2,
-!     > ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,ppCHNO,ppSiF2
-
-!      real ::
-!     > ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,ppCS,ppH2O,
-!     > ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,ppZrO,ppMgH,ppNH3,
-!     > ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,ppHm,ppH2,ppH2p,ppHS,
-!     > ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,ppS2,ppSiS,ppLaO,ppCH2,
-!     > ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,ppCHNO,ppSiF2
 
 !     Partial pressures from GG-chem subroutine DEMO_SWEEP (ERC JUMP = 4)
       common /partialpressure/
@@ -12761,33 +12772,20 @@ C atms,ions,spec ~ highest index of neutral atoms, ions, species total
      > ppCHNO,ppSiF2,ppAlCl,ppAlF,ppAlH,ppAlO,ppBeH,ppCaF,ppCH3F,ppCP,
      > ppH2CO,ppHCl,ppHNO3,ppKCl,ppKF,ppLiCl,ppLiF,ppMgF,ppNaCl,ppNaF,
      > ppNaH,ppPH3,ppPN,ppPO,ppPS,ppSH,ppSO2
-      common /ggchemresults/
-     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
       common /ggchempe/PPEL_OLD(NDP),PE_OLD(NDP)
       common /ggchemmu/ggmu(NDP),ggrho(NDP),ppsum(ndp),ppappsum(ndp),
      &   ppnonappsum(ndp),tg(ndp),pges(ndp)
      &  ,ppat1sum(ndp),ppat2sum(ndp),ppmolsum(ndp),ppgs(ndp)
-
-C      real ::
-C     > ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,
-C     > ppCS,ppH2O,ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,
-C     > ppZrO,ppMgH,ppNH3,ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,
-C     > ppHm,ppH2,ppH2p,ppHS,ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,
-C     > ppS2,ppSiS,ppLaO,ppCH2,ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,
-C     > ppCHNO,ppSiF2,ppAlCl,ppAlF,ppAlH,ppAlO,ppBeH,ppCaF,ppCH3F,ppCP,
-C     > ppH2CO,ppHCl,ppHNO3,ppKCl,ppKF,ppLiCl,ppLiF,ppMgF,ppNaCl,ppNaF,
-C     > ppNaH,ppPH3,ppPN,ppPO,ppPS,ppSH,ppSO2,
-C     > ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-C     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
-
-
-
-
-
-
-
-C
+      common /ggchemresults/
+     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
+     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+      integer, dimension(75) :: idmarcspart, idggchempart
+      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,gg_partpp(ndp,75)
+     >                ,presmogg(33),ppat(22),ppmol(543)
+     >                ,idmarcspres(32),idggchempres(32)
+     >                ,idmarcspart,idggchempart
+     >                ,atnames(22),molnames(543), molnames2(75)
       if (first) then
       TOSREAD = 0.
       TPART = 0.
@@ -12833,9 +12831,6 @@ C        end if
 CV20    ptot(k)=pe(k)+pp(k)-ppr(k)-ppt(k)
 
         ptot(k)=pp(k)-ppr(k)-ppt(k)
-        print *, "ptot line 12833", ptot(k)
-C        print *, "layer", k
-C        print *, "pg", ptot(k)
 2111    continue
 
 
@@ -13036,33 +13031,20 @@ C ------------ USING GGCHEM TO COMPUTE PARTIALPRESSURES ------------
           else if (JUMP.eq.4) then
 ! use here ggrho(k) from GGchem instead ro(k) from jon and skip calling
 ! jon here
-C            CALL JON(T(K),PE(K),1,PGP,RO(K),EP,0)
-            call init_ggchem_ERC(k,t(k),ptot(k))
+            call GGCHEM(k,t(k),ptot(k))
             ppel(k) = ppelGG
-            print *, "GG chem called and these are the results inside",
-     &      "MARCS"
-            print *, "k", k
-            print *, "ppel(k)", ppel(k)
             ggmu(k) = ggmuk
-            print *, "ggmu(k)", ggmu(k)
             ggrho(k) = ggrhok
-            print *, "ggrho(k)", ggrho(k)
+            ppsum(k) = ppsumk
+            ppappsum(k) = ppappsumk
+            ppnonappsum(k) = ppnonappsumk
             ppat1sum(k) = ppat1sumk
-            print *, "ppat1sum(k)", ppat1sum(k)
+            ppat2sum(k) = ppat2sumk
             ppmolsum(k) = ppmolsumk
-            print *, "ppmolsum(k)", ppmolsum(k)
             ppgs(k) = ppgsk
-            print *, "ppgs(k)", ppgs(k)
             tg(k) = tgk
-            print *, "tg(k)", tg(k) 
             pges(k) = pgesk
-            print *, "pges(k)", pges(k)
             ro(k) = ggrho(k)
-            print *, "ro(k)", ggrho(k)
-            ppsum(k) = ppmolsumk 
-            ppappsum(k) = ppsumk
-            ppnonappsum(k) = 0.0
-            ppat2sum(k) = 0.0  
 C            pe(k) = ppelGG   !brings GGchem Pe into STATEC => mess up
           end if
         
@@ -13109,110 +13091,24 @@ C I.e., PRESMO(17)*ro = 1.38053e-16 * T(K) * XNHE * ro is in units
 C dyn/cm2 (and not presmo(17) alone).
 
         if (JUMP.EQ.4) then
-C        TRIX=T(K)*GGRHO(K)
-C        RO4=GGRHO(K)
         RO4=RO(K)
-       
-C --------- PARTIAL PRESSURES FROM GGCHEM SUBROUTINE DEMO_SWEEP ------
-C        if(k.eq.1) print '(I3,3f8.3)', k,LOG10(ppco),LOG10(pph2o)
-C     &  , LOG10(pptio)
-        PARTP(K,0)  = ppH            / TRIX*1.20274D-8    ! H
-        PARTP(K,1)  = ppHm           / TRIX*1.20274D-8    ! H-
-        PARTP(K,3)  = ppH2p          / TRIX*1.20274D-8    ! H2+
-        PARTP(K,6)  = ppCH           / TRIX*1.20274D-8    ! CH
-        PARTP(K,7)  = ppCO           / TRIX*1.20274D-8    ! CO
-        PARTP(K,8)  = ppCN           / TRIX*1.20274D-8    ! CN
-        PARTP(K,9)  = ppC2           / TRIX*1.20274D-8    ! C2
-        PARTP(K,11) = ppO2           / TRIX*1.20274D-8    ! O2
-        partp(k,12) = ppNO           / trix*1.20274d-8    ! NO
-        PARTP(K,14) = ppC2H2         / TRIX*1.20274D-8    ! C2H2
-        PARTP(K,15) = ppHCN          / TRIX*1.20274D-8    ! HCN
-        PARTP(K,16) = ppC2H          / TRIX*1.20274D-8    ! C2H
-        PARTP(K,21) = ppC3           / TRIX*1.20274D-8    ! C3
-        PARTP(K,22) = ppCS           / TRIX*1.20274D-8    ! CS
-        PARTP(K,4)  = ppH2O          / TRIX*1.20274D-8    ! H2O
-        PARTP(K,5)  = ppOH           / TRIX*1.20274D-8    ! OH 
-        PARTP(K,31) = ppTiO          / TRIX*1.20274D-8    ! TiO
-        PARTP(K,27) = ppSiO          / TRIX*1.20274D-8    ! SiO
-        PARTP(K,39) = ppCH4          / TRIX*1.20274D-8    ! CH4
-
-        PARTP(K,2)=(ppH2/3.7095D3/T(K) )**2 /RO(K) ! H2-H2 CIA??
-           XNHE = abmarcs(2,k) / (XMH*XMY(k))
-           PARTP(K,17) = 1.38053e-16 * T(K) * XNHE
-        PARTP(K,17)=
-     *     PARTP(K,2)*PARTP(K,17)/( 3.7095D3 * T(K) )**2  ! H2-HE CIA
-           PARTP(K,17) = PARTP(K,17) * RO(K)
-           PHE = PARTP(K,17)
-           P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*ppH2
-
-        PARTP(K,13) = ppNH          / TRIX*1.20274D-8    ! NH
-        PARTP(K,19) = ppSiH         / TRIX*1.20274D-8    ! SiH
-        PARTP(K,216)= ppFeH         / TRIX*1.20274D-8    ! FeH
-        PARTP(K,32) = ppVO          / TRIX*1.20274D-8    ! VO
-        PARTP(K,33) = ppZrO         / TRIX*1.20274D-8    ! ZrO
-        PARTP(K,34) = ppMgH         / TRIX*1.20274D-8    ! MgH
-        PARTP(K,36) = ppCaH         / TRIX*1.20274D-8    ! CaH 
-
-        PARTP(K,43) = ppNH3         / TRIX*1.20274D-8    ! NH3
-        PARTP(K,46) = ppCO2         / TRIX*1.20274D-8    ! CO2
-        partp(k,214)= ppTiH         / trix*1.20274d-8    ! TiH
-        partp(k,215)= ppCaH         / trix*1.20274d-8    ! CaH
-        partp(k,217)= ppCrH         / trix*1.20274d-8    ! CrH
-        partp(k,71) = ppLiH         / trix*1.20274d-8    ! LiH
-        partp(k,10) = ppH2          / trix*1.20274d-8    ! H2
-        PARTP(K,18) = ppHS          / TRIX*1.20274D-8    ! HS
-        PARTP(K,20) = ppC3H         / TRIX*1.20274D-8    ! C3H
-        PARTP(K,23) = ppSiC         / TRIX*1.20274D-8    ! SiC
-        PARTP(K,24) = ppSiC2        / TRIX*1.20274D-8    ! SiC2
-        PARTP(K,25) = ppNS          / TRIX*1.20274D-8    ! NS
-        PARTP(K,26) = ppSiN         / TRIX*1.20274D-8    ! SiN
-        PARTP(K,28) = ppSO          / TRIX*1.20274D-8    ! SO
-        PARTP(K,29) = ppS2          / TRIX*1.20274D-8    ! S2
-        PARTP(K,30) = ppSiS         / TRIX*1.20274D-8    ! SiS
-        PARTP(K,37) = ppLaO         / TRIX*1.20274D-8    ! La2
-        PARTP(K,40) = ppCH2         / TRIX*1.20274D-8    ! CH2
-        PARTP(K,41) = ppCH3         / TRIX*1.20274D-8    ! CH3
-        PARTP(K,57) = ppSi2C        / TRIX*1.20274D-8    ! Si2C
-        PARTP(K,58) = ppSiO2        / TRIX*1.20274D-8    ! SiO2
-        PARTP(K,59) = ppH2S         / TRIX*1.20274D-8    ! H2S
-        PARTP(K,67) = ppCaOH        / TRIX*1.20274D-8    ! CaOH
-        PARTP(K,107)= ppCHNO        / TRIX*1.20274D-8    ! CHNO
-        PARTP(K,135)= ppSiF2        / TRIX*1.20274D-8    ! SiF2
-        PARTP(K,218)= ppN2          / TRIX*1.20274D-8    ! N2 
-
-! EXOMOL MOLECULES WITH OS FILES (Rune D.K. 2019)
-
-        PARTP(K,220)= ppAlCl        / TRIX*1.20274D-8    ! AlCl 
-        PARTP(K,221)= ppAlF         / TRIX*1.20274D-8    ! AlF 
-        PARTP(K,222)= ppAlH         / TRIX*1.20274D-8    ! AlH 
-        PARTP(K,223)= ppAlO         / TRIX*1.20274D-8    ! AlO 
-        PARTP(K,224)= ppBeH         / TRIX*1.20274D-8    ! BeH 
-        PARTP(K,225)= ppCaF         / TRIX*1.20274D-8    ! CaF 
-        PARTP(K,226)= ppCH3F        / TRIX*1.20274D-8    ! CH3F 
-!CH4  
-        PARTP(K,227)= ppCP          / TRIX*1.20274D-8    ! CP 
-        PARTP(K,228)= ppCS          / TRIX*1.20274D-8    ! CS 
-        PARTP(K,229)= ppH2CO        / TRIX*1.20274D-8    ! H2CO 
-        PARTP(K,230)= ppHCl         / TRIX*1.20274D-8    ! HCl
-        PARTP(K,231)= ppHNO3        / TRIX*1.20274D-8    ! HNO3 
-        PARTP(K,232)= ppKCl         / TRIX*1.20274D-8    ! KCl 
-        PARTP(K,233)= ppKF          / TRIX*1.20274D-8    ! KF 
-        PARTP(K,234)= ppLiCl        / TRIX*1.20274D-8    ! LiCl 
-        PARTP(K,235)= ppLiF         / TRIX*1.20274D-8    ! LiF
-        PARTP(K,236)= ppMgF         / TRIX*1.20274D-8    ! MgF 
-        PARTP(K,237)= ppNaCl        / TRIX*1.20274D-8    ! NaCl 
-        PARTP(K,238)= ppNaF         / TRIX*1.20274D-8    ! NaF
-        PARTP(K,239)= ppNaH         / TRIX*1.20274D-8    ! NaH 
-!NH3
-!NS
-        PARTP(K,240)= ppPH3         / TRIX*1.20274D-8    ! PH3 
-        PARTP(K,241)= ppPN          / TRIX*1.20274D-8    ! PN 
-        PARTP(K,242)= ppPO          / TRIX*1.20274D-8    ! PO 
-        PARTP(K,243)= ppPS          / TRIX*1.20274D-8    ! PS 
-        PARTP(K,244)= ppSH          / TRIX*1.20274D-8    ! SH 
-!SiS
-        PARTP(K,245)= ppSO2         / TRIX*1.20274D-8    ! SO2 
-
+        
+        partp(k,0) = ppallat(k,1) / TRIX*1.20274D-8 
+        do m=1, 75
+         partp(k,idmarcspart(m)) = 
+     *   gg_partpp(k,idmarcspart(m)) / TRIX*1.20274D-8 
+        end do
+         partp(k,2) = (ppallmol(k,1) /3.7095D3/T(K) )**2 /RO(K)
+         XNHE = abmarcs(2,k) / (XMH*XMY(k))
+         
+         partp(k,17) = 1.38053e-16 * T(K) * XNHE 
+         partp(k,17)=
+     *     partp(k,2)*partp(k,17)/( 3.7095D3 * T(K) )**2
+         partp(k,17) = partp(k,17) * RO(K)
+         PHE = partp(K,17)
+         P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*ppallmol(k,1)
+        
+        print *, "partp(k,17)", partp(k,17) 
 
 
 ! END OF EXOMOL MOLECULES WITH OS FILES (Rune D.K. 2019)
@@ -13240,103 +13136,22 @@ C     &  , LOG10(pptio)
 ! The variable PARTP used for opacities per g-* depends on rho and mu
 ! so rho and mu should be computed consistently with PARTP (i.e. from
 ! ggchem and not from JON or THERMO).
+        partpp(k,0) = ppallat(k,1)
+        do m=1, 75
+         print *, "marcs id", idmarcspart(m)
+         print *, "gg part pp ", gg_partpp(k,idmarcspart(m)) 
+         partpp(k,idmarcspart(m)) =
+     *   gg_partpp(k,idmarcspart(m))
+        end do
+         partpp(k,2) = (ppallmol(k,1) /3.7095D3/T(K) )**2 /RO(K)
+         XNHE = abmarcs(2,k) / (XMH*XMY(k))
 
-
-        PARTPP(K,0)  = ppH                                 ! H
-        PARTPP(K,1)  = ppHm                                ! H-
-        PARTPP(K,3)  = ppH2p                               ! H2+
-        PARTPP(K,6)  = ppCH                                ! CH
-        PARTPP(K,7)  = ppCO                                ! CO
-        PARTPP(K,8)  = ppCN                                ! CN
-        PARTPP(K,9)  = ppC2                                ! C2
-        PARTPP(K,11) = ppO2                                ! O2
-        PARTPP(k,12) = ppNO                                ! NO
-        PARTPP(K,14) = ppC2H2                              ! C2H2
-        PARTPP(K,15) = ppHCN                               ! HCN
-        PARTPP(K,16) = ppC2H                               ! C2H
-        PARTPP(K,21) = ppC3                                ! C3
-        PARTPP(K,22) = ppCS                                ! CS
-        PARTPP(K,4)  = ppH2O                               ! H2O
-        PARTPP(K,5)  = ppOH                                ! OH 
-        PARTPP(K,31) = ppTiO                               ! TiO
-        PARTPP(K,27) = ppSiO                               ! SiO
-        PARTPP(K,39) = ppCH4                               ! CH4
-
-        PARTPP(K,2)=(ppH2/3.7095D3/T(K) )**2 /RO(K) ! H2-H2 CIA??
-           XNHE = abmarcs(2,k) / (XMH*XMY(k))
-           PARTPP(K,17) = 1.38053e-16 * T(K) * XNHE
-        PARTPP(K,17)=
-     *     PARTPP(K,2)*PARTPP(K,17)/( 3.7095D3 * T(K) )**2  ! H2-HE CIA
-           PARTPP(K,17) = PARTPP(K,17) * RO(K)
-           PHE = PARTPP(K,17)
-           P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*ppH2
-
-        PARTPP(K,13) = ppNH                              ! NH
-        PARTPP(K,19) = ppSiH                             ! SiH
-        PARTPP(K,216)= ppFeH                             ! FeH
-        PARTPP(K,32) = ppVO                              ! VO
-        PARTPP(K,33) = ppZrO                             ! ZrO
-        PARTPP(K,34) = ppMgH                             ! MgH
-        PARTPP(K,36) = ppCaH                             ! CaH 
-
-        PARTPP(K,43) = ppNH3                             ! NH3
-        PARTPP(K,46) = ppCO2                             ! CO2
-        PARTPP(k,214)= ppTiH                             ! TiH
-        PARTPP(k,215)= ppCaH                             ! CaH
-        PARTPP(k,217)= ppCrH                             ! CrH
-        PARTPP(k,71) = ppLiH                             ! LiH
-        PARTPP(k,10) = ppH2                              ! H2
-        PARTPP(K,18) = ppHS                              ! HS
-        PARTPP(K,20) = ppC3H                             ! C3H
-        PARTPP(K,23) = ppSiC                             ! SiC
-        PARTPP(K,24) = ppSiC2                            ! SiC2
-        PARTPP(K,25) = ppNS                              ! NS
-        PARTPP(K,26) = ppSiN                             ! SiN
-        PARTPP(K,28) = ppSO                              ! SO
-        PARTPP(K,29) = ppS2                              ! S2
-        PARTPP(K,30) = ppSiS                             ! SiS
-        PARTPP(K,37) = ppLaO                             ! La2
-        PARTPP(K,40) = ppCH2                             ! CH2
-        PARTPP(K,41) = ppCH3                             ! CH3
-        PARTPP(K,57) = ppSi2C                            ! Si2C
-        PARTPP(K,58) = ppSiO2                            ! SiO2
-        PARTPP(K,59) = ppH2S                             ! H2S
-        PARTPP(K,67) = ppCaOH                            ! CaOH
-        PARTPP(K,107)= ppCHNO                            ! CHNO
-        PARTPP(K,135)= ppSiF2                            ! SiF2
-        PARTPP(K,218)= ppN2                              ! N2 
-
-        PARTPP(K,220)= ppAlCl                             ! AlCl 
-        PARTPP(K,221)= ppAlF                              ! AlF 
-        PARTPP(K,222)= ppAlH                              ! AlH 
-        PARTPP(K,223)= ppAlO                              ! AlO 
-        PARTPP(K,224)= ppBeH                              ! BeH 
-        PARTPP(K,225)= ppCaF                              ! CaF 
-        PARTPP(K,226)= ppCH3F                             ! CH3F 
-!CH4  
-        PARTPP(K,227)= ppCP                               ! CP 
-        PARTPP(K,228)= ppCS                               ! CS 
-        PARTPP(K,229)= ppH2CO                             ! H2CO 
-        PARTPP(K,230)= ppHCl                              ! HCl
-        PARTPP(K,231)= ppHNO3                             ! HNO3 
-        PARTPP(K,232)= ppKCl                              ! KCl 
-        PARTPP(K,233)= ppKF                               ! KF 
-        PARTPP(K,234)= ppLiCl                             ! LiCl 
-        PARTPP(K,235)= ppLiF                              ! LiF
-        PARTPP(K,236)= ppMgF                              ! MgF 
-        PARTPP(K,237)= ppNaCl                             ! NaCl 
-        PARTPP(K,238)= ppNaF                              ! NaF
-        PARTPP(K,239)= ppNaH                              ! NaH 
-!NH3
-!NS
-        PARTPP(K,240)= ppPH3                              ! PH3 
-        PARTPP(K,241)= ppPN                               ! PN 
-        PARTPP(K,242)= ppPO                               ! PO 
-        PARTPP(K,243)= ppPS                               ! PS 
-        PARTPP(K,244)= ppSH                               ! SH 
-!SiS
-        PARTPP(K,245)= ppSO2                              ! SO2 
-
+         partpp(k,17) = 1.38053e-16 * T(K) * XNHE
+         partpp(k,17)=
+     *     partpp(k,2)*partpp(k,17)/( 3.7095D3 * T(K) )**2
+         partpp(k,17) = partpp(k,17) * RO(K)
+         PHE = partpp(K,17)
+         P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*ppallmol(k,1)
 
 
 
@@ -13360,125 +13175,6 @@ C     &  , LOG10(pptio)
         
         end if
 
-
-        if (JUMP.EQ.3) then               !i.e., from Gibbs minimalisation
-
-        PARTP(K,6) = prespp(K,153) /TRIX*1.20274D-8    ! CH
-        PARTP(K,7) = prespp(K,152) /TRIX*1.20274D-8    ! CO
-        PARTP(K,8) = prespp(K,154) /TRIX*1.20274D-8    ! CN
-        PARTP(K,9) = prespp(K,132) /TRIX*1.20274D-8    ! C2
-        PARTP(K,14)= prespp(K,575) /TRIX*1.20274D-8    ! C2H2
-        PARTP(K,15)= prespp(K,372) /TRIX*1.20274D-8    ! HCN  (actually CHN)
-        PARTP(K,16)= prespp(K,367) /TRIX*1.20274D-8    ! C2H
-        PARTP(K,21)= prespp(K,364) /TRIX*1.20274D-8    ! C3
-        PARTP(K,22)= prespp(K,160) /TRIX*1.20274D-8    ! CS
-        PARTP(K,4) = prespp(K,382) /TRIX*1.20274D-8    ! H2O
-        PARTP(K,5) = prespp(K,155) /TRIX*1.20274D-8    ! OH 
-        PARTP(K,31)= prespp(K,201) /TRIX*1.20274D-8    ! TiO
-        PARTP(K,27)= prespp(K,196) /TRIX*1.20274D-8    ! SiO
-        PARTP(K,39)= prespp(K,580) /TRIX*1.20274D-8    ! CH4
-
-C       if(k.eq.1.or.k.eq.27.or.k.eq.47) write(6,784) k
-C     &     ,prespp(k,152), prespp(k,153), prespp(k,154)
-C     &     ,prespp(k,132), prespp(k,575), prespp(k,372)
-C     &     ,prespp(k,367), prespp(k,364), prespp(k,160)
-C     &     ,prespp(k,382), prespp(k,155), prespp(k,201)
-C     &     ,prespp(k,196), prespp(k,580), prespp(k,128)
-C784    format(i3,1p7e9.2,/5x,8e9.2)
-
-C        if(k.eq.1) write(6,2129) abink(k,152),abink(k,372),abink(k,382)
-C     &        ,abink(k,201)
-C2129    format(' abink{CO,HCN,H2O,TiO} in OSTABLOOK:',1p4e12.3)
-
-        PARTP(K,2)=(PARTRYCK(K,2)/3.7095D3/T(K) )**2 /RO(K) ! H2-H2 CIA
-           XNHE = abmarcs(2,k) / (XMH*XMY(k))
-           PARTRYCK(K,17) = 1.38053e-16 * T(K) * XNHE
-        PARTP(K,17)=
-     *     PARTRYCK(K,2)*PARTRYCK(K,17)/( 3.7095D3 * T(K) )**2  ! H2-HE CIA
-           PARTRYCK(K,17) = PARTRYCK(K,17) * RO(K)
-           PHE = PARTRYCK(K,17)
-           P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*partryck(k,2)
-
-        go to 2101
-
-        end if    !Gibbs
-
-        if (JUMP.GE.1) then               !i.e., from Tsuji
-        PARTP(K,6) =PARTRYCK(K,6)/TRIX*1.20274D-8     ! CH
-        PARTP(K,7) =PARTRYCK(K,7)/TRIX*1.20274D-8     ! CO
-        PARTP(K,8) =PARTRYCK(K,8)/TRIX*1.20274D-8     ! CN
-        PARTP(K,9) =PARTRYCK(K,9)/TRIX*1.20274D-8     ! C2
-        partp(k,12)=partryck(k,12)/trix*1.20274d-8    ! NO
-        PARTP(K,14)=PARTRYCK(K,14)/TRIX*1.20274D-8    ! C2H2
-        PARTP(K,15)=PARTRYCK(K,15)/TRIX*1.20274D-8    ! HCN
-        PARTP(K,16)=PARTRYCK(K,16)/TRIX*1.20274D-8    ! C2H
-        PARTP(K,21)=PARTRYCK(K,21)/TRIX*1.20274D-8    ! C3
-        PARTP(K,22)=PARTRYCK(K,22)/TRIX*1.20274D-8    ! CS
-        PARTP(K,4) =PARTRYCK(K,4)/TRIX*1.20274D-8     ! H2O
-        PARTP(K,5) =PARTRYCK(K,5)/TRIX*1.20274D-8     ! OH 
-        PARTP(K,31)=PARTRYCK(K,31)/TRIX*1.20274D-8    ! TiO
-        PARTP(K,27)=PARTRYCK(K,27)/TRIX*1.20274D-8    ! SiO
-        PARTP(K,39)=PARTRYCK(K,39)/TRIX*1.20274D-8    ! CH4
-        PARTP(K,2)=(PARTRYCK(K,2)/3.7095D3/T(K) )**2 /RO(K) ! H2-H2 CIA
-           XNHE = abmarcs(2,k) / (XMH*XMY(k))
-           PARTRYCK(K,17) = 1.38053e-16 * T(K) * XNHE
-        PARTP(K,17)=
-     *     PARTRYCK(K,2)*PARTRYCK(K,17)/( 3.7095D3 * T(K) )**2  ! H2-HE CIA
-           PARTRYCK(K,17) = PARTRYCK(K,17) * RO(K)
-           PHE = PARTRYCK(K,17)
-           P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*partryck(k,2)
-        PARTP(K,13)=PARTRYCK(K,13)/TRIX*1.20274D-8    ! NH
-        PARTP(K,19)=PARTRYCK(K,19)/TRIX*1.20274D-8    ! SiH
-        PARTP(K,216)=PARTRYCK(K,216)/TRIX*1.20274D-8  ! FeH
-        PARTP(K,32)=PARTRYCK(K,32)/TRIX*1.20274D-8    ! VO
-        PARTP(K,33)=PARTRYCK(K,33)/TRIX*1.20274D-8    ! ZrO
-        PARTP(K,34)=PARTRYCK(K,34)/TRIX*1.20274D-8    ! MgH
-        PARTP(K,36)=PARTRYCK(K,36)/TRIX*1.20274D-8
-        PARTP(K,43)=PARTRYCK(K,43)/TRIX*1.20274D-8    ! NH3
-        PARTP(K,46)=PARTRYCK(K,46)/TRIX*1.20274D-8    ! CO2
-        partp(k,214)=partryck(k,214)/trix*1.20274d-8  ! TiH
-        partp(k,215)=partryck(k,215)/trix*1.20274d-8  ! CaH
-        partp(k,217)=partryck(k,217)/trix*1.20274d-8  ! CrH
-        partp(k,71) =partryck(k,71)/trix*1.20274d-8   ! LiH
-        partp(k,10) = partryck(k,2)/trix*1.20274d-8   ! H2
-
-        else
-
-        PARTP(K,6)=PRESMO(6)/TRIX*1.20274D-8      ! CH
-        PARTP(K,7)=PRESMO(7)/TRIX*1.20274D-8      ! CO
-        PARTP(K,8)=PRESMO(8)/TRIX*1.20274D-8      ! CN
-        PARTP(K,9)=PRESMO(9)/TRIX*1.20274D-8      ! C2
-        PARTP(K,14)=PRESMO(14)/TRIX*1.20274D-8    ! C2H2
-        PARTP(K,15)=PRESMO(15)/TRIX*1.20274D-8    ! HCN
-        PARTP(K,16)=PRESMO(16)/TRIX*1.20274D-8    ! C2H
-        PARTP(K,21)=PRESMO(21)/TRIX*1.20274D-8    ! C3
-        PARTP(K,22)=PRESMO(22)/TRIX*1.20274D-8    ! CS
-        PARTP(K,4)=PRESMO(4)/TRIX*1.20274D-8      ! H2O
-        PARTP(K,5)=PRESMO(5)/TRIX*1.20274D-8      ! OH
-        PARTP(K,31)=PRESMO(31)/TRIX*1.20274D-8    ! TiO
-        PARTP(K,27)=PRESMO(27)/TRIX*1.20274D-8    ! SiO
-        PARTP(K,2)=(PRESMO(2)/3.7095D3/T(K) )**2 /RO(K) ! H2-H2 CIA
-        XNHE = abmarcs(2,k) / (XMH*XMY(k)) 
-        PRESMO(17) = 1.38053e-16 * T(K) * XNHE
-        PARTP(K,17)=PRESMO(2)*PRESMO(17)/( 3.7095D3 * T(K) )**2  ! H2-HE CIA
-        PRESMO(17) = PRESMO(17) * RO(K)
-        PARTP(K,13)=PRESMO(13)/TRIX*1.20274D-8    ! NH
-        PARTP(K,19)=PRESMO(19)/TRIX*1.20274D-8    ! SiH
-C       PARTP(K,x)=PRESM(K,x)/TRIX*1.20274D-8      ! FeH
-
-        CIATEST(12,k) = presmo(2)
-        CIATEST(13,k) = t(k)
-        CIATEST(14,k) = xnhe
-        CIATEST(15,k) = presmo(17)
-        CIATEST(16,k) = ro(k)
-        CIATEST(17,k) = partp(k,2)
-        CIATEST(18,k) = partp(k,17)
-        CIATEST(19,k) = abmarcs(2,k)
-        CIATEST(20,k) = xmh
-        CIATEST(21,k) = xmy(k)
-        CIATEST(22,k) = trix
-
-        end if
 
 
 2101  CONTINUE
@@ -13728,8 +13424,55 @@ C     IF (FIRST) WRITE(6,INPUTOSMOL)
 
 C connect the opacity index with the partial pressure index
       KMOL(NM) = IDMOL
-      if(first) write(66,620) nm,molid,kmol(nm)
-620   format (' nm=',i3,' for molecule: ',a4,' with presmo index',i3)
+      if(first) then 
+
+        open(unit=90,file='allpp.dat',status='unknown')
+
+         write(66,620) nm,molid,kmol(nm)
+         if(nm.eq.1) write(90,*)
+     &     ' molid is read from OS-files; pp from conected GGchem index'
+         if(nm.eq.1) write(90,621) nosmol
+621      format('For the',i3,' OS molecules:',/
+     &           ' nm  molid   idmol=kmol(nm)   partp({1,ntau},idmol)')
+         write(90,620) 
+     &     nm,molid,kmol(nm),partpp(1,idmol),partpp(ntau,idmol)
+        if(nm.eq.nosmol) then
+        write(90,*)'nm=2,17,14,21,228= h2-h2, h2-he, c2h2, c3,'
+     &     ,' cs(228/22), HS(18),  SH(224)  NS(25)   AlCl(220):'
+         idmol=2
+         molid='H2H2'
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=17
+         molid='H2HE'
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=14
+         molid='C2H2'
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=21
+         molid='C3  '
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=228
+         molid='CS  '
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=22
+         molid='CS  '
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=18
+         molid='HS  '
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=224
+         molid='SH  '
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=25
+         molid='NS  '
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+         idmol=220
+         molid='AlCl'
+         write(90,622)idmol,molid,partpp(1,idmol),partpp(ntau,idmol)
+        end if
+      end if
+620   format (i4,3x,a4,3x,i5,4x,1p2e12.3)
+622   format (i4,3x,a4,12x,1p2e12.3)
 C     
 C in case of metal lines, use mihala's two dimensional interpolation 
 C routine to find kappa(metals) for given T,Pe
@@ -15348,9 +15091,7 @@ C
        trpe(i) = 0.1d0 * pe(i)
 CV20   ptot(i) = pg(i) + pe(i)
        ptot(i) = pg(i)
-       print *, "ptot before convert", ptot(i)
        ptot(i) = 0.1d0 * ptot(i)     !1N/m^2 = 10 dynes/cm^2
-       print *, "ptot after", ptot(i)
        trphe(i) = (0.1d0 * phe(i)) / ptot(i)
 C      if(i.eq.1.or.i.eq.27.or.i.eq.47)
 C    &          write(6,782) i,t(i),pg(i),pe(i),trphe(i)
@@ -15917,7 +15658,10 @@ C
       character*128 molec,met
       common/files/molec,met
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
+C      common /fullequilibrium/ partryck(ndp,maxmol),
+C     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
       common /tsuji/ nattsuji,nmotsuji,parptsuji(500),abtsuji(17,ndp)
       common/cmolrat/fold(ndp,8),molold,kl
 
@@ -16043,7 +15787,10 @@ C      implicit none
       include 'parameter.inc'
       common /tsuji/ nattsuji,nmotsuji,parptsuji(500),abtsuji(17,ndp)
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
+C      common /fullequilibrium/ partryck(ndp,maxmol),
+C     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
       COMMON/CARC3/F1P,F3P,F4P,F5P,HNIC,PRESMO(33)
 * store the metals and ions
 * they are not yet indexed like in jon.
@@ -16856,7 +16603,10 @@ C ATOMC NUMBER 99= ELECTRON
       character*128 molec,met
       common/files/molec,met
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
+C      common /fullequilibrium/ partryck(ndp,maxmol),
+C     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
       common /tsuji/ nattsuji,nmotsuji,parptsuji(500),abtsuji(17,ndp)
       common/cmolrat/fold(ndp,8),molold,kl
       common/statec/dum1(10*ndp),tauln(ndp),ro(ndp),ntau,iter
@@ -16932,7 +16682,10 @@ C ATOMC NUMBER 99= ELECTRON
       logical first
       character*5 name_mol, name_listmo
       common /fullequilibrium/ partryck(ndp,maxmol),
-     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
+     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet),partp(ndp,0:maxmol),
+     &  partpp(ndp,0:maxmol)
+C      common /fullequilibrium/ partryck(ndp,maxmol),
+C     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
       common /tsuji/ nattsuji,nmotsuji,parptsuji(500),abtsuji(17,ndp)
       COMMON/CARC3/F1P,F3P,F4P,F5P,HNIC,PRESMO(33)
       common /cmolname/name_mol(maxmol),name_listmo(maxmol)
@@ -18055,6 +17808,8 @@ C if sunz = yes, we use solar abundances from unit 2
 
         READ(5,ABUNDANCES)
         if(sunz.eq.'y'.or.sunz.eq.'Y') then
+          write(7,*) 
+     &    'We adopted solar abundances from unit=2=elabund.dat'
           write(6,*) 
      &    'We adopted solar abundances from unit=2=elabund.dat'
           go to 309
@@ -18091,6 +17846,7 @@ C_ursa     &                      ,abund(isubst(i))),i=1,nchange_ab)
 309     continue
 
         write(6,132) abund(2),abund(3),(abund(i),i=7,9),abund(26)
+        write(7,132) abund(2),abund(3),(abund(i),i=7,9),abund(26)
 132     format('Adopted abundances of H,He,C,N,O,Fe:',8f7.2)
 
 C   the 17 marcs_abundances: H  HE C  N  O  NE NA MG AL SI S  K  CA CR FE NI Ti
@@ -20153,26 +19909,50 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       return
       end
 
-!-----------------------------------------------------------------------
-! Intiates ggchem input
-! ERC 2018i
-!-----------------------------------------------------------------------
-      subroutine init_ggchem_ERC(k,tt,pres)
-    
-      implicit real*8 (a-h,o-z)
-      include 'parameter.inc'
+************************************************************************
+c Subroutine that calls GGChem
+c updated jan 2021
+c BCE
+c Takes as arguments:
+c k - the atmosphere layer number
+c temp - temperature of the atmospheric layer (Kelvin)
+c pgas - gas pressures at the layer
+c
+c Input for GGchem is written in marcs2ggchem.in file.
+c GGchem is called with model dimension 0, with a single temperature
+c and pressure. For now it is also called with a typical solar
+c abundance initially.
+c 
+c marcs2gg_presmo.dat and marcs2gg_part.dat have correspondence
+c between molecular ids in MARCS and GGchem for the PRESMO array
+c and the PARTP/PARTPP arrays.
+c 
+c GGchem_ppel contains overall output from GGchem (it is written in
+c ggchem's main.f ) such as total electron pressure, total atom pressure
+c and total molecular pressure. 
+************************************************************************
 
-      real*8,intent(in) :: tt,pres
-      common /consistgginit/ttgg(ndp),ppgg(ndp),kk
-      print *, "temperature ggchem called with", tt
-      print *, "pressure ggchem called with", pres
-      lk=k
-      ttgg(lk) = tt
-      ppgg(lk) = pres
-      kk=lk
+      subroutine GGCHEM(k,temp,pgas)
+      
+      implicit real*8 (a-h, o-z)
+      include 'parameter.inc'
+      integer, dimension(75) :: idmarcspart, idggchempart
+      integer, dimension(32) :: idmarcspres, idggchempres
+      real*8,intent(in) :: temp,pgas
+      character atnames*2, molnames*8, molnames2*4
+      common /ggchemresults/
+     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
+     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,gg_partpp(ndp,75)
+     >                ,presmogg(33),ppat(22),ppmol(543)
+     >                ,idmarcspres,idggchempres
+     >                ,idmarcspart,idggchempart
+     >                ,atnames(22),molnames(543), molnames2(75)
 
       bar=1.Q+6
-      open(unit=70,file='marcs2ggchem.in', status='replace')
+      
+      open(unit=70, file='marcs2ggchem.in', status='replace')
       write(70, '(19a)') '# selected elements'
       write(70, '(99a)') 'H He C N O Na Mg Si F Fe Al Ca Cr Ti S Cl K Li
      & V Zr Be P el'
@@ -20185,137 +19965,62 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
      &         ! dispol_file3'
       write(70,'(a64)') '# abundance options 1=EarthCrust, 2=Ocean,
      & 3=Solar, 4=Meteorites'
-      write(70, '(a34)')'.false.               ! pick_mfrac'
       write(70,'(a34)') '3                     ! abund_pick'
       write(70,'(a27)') '# equilibrium condensation?'
-      write(70,'(a36)') '.false.               ! model_eqcond'
-      write(70,'(a42)') '.true.                ! remove_condensates'
-      write(70,'(a15)') '# model options'
+      write(70,'(a36)') '.false.               ! model_eqcond'   
       write(70,'(a42)') '0                     ! model_dim  (0,1,2)'
-      write(70,'(a36)') '.true.                ! model_pconst'    
-      write(70,*) tt, '                ! Tmax [K]'
-      write(70,*) pres/bar,'                   ! pmax [bar]'   
-      write(70,*) pres/bar,'                   ! pmin [bar]'
-      write(70,'(a33)') '5                     ! NewBackIt'
-      write(70,'(a29)') '1000.0                ! Tfast'
+      write(70,'(a36)') '.true.                ! model_pconst'
+      write(70,*) temp, '                ! Tmax [K]'
+      write(70,*) pgas/bar,'                   ! pmax [bar]' 
       close(70)
-!      print *,'Calling ggchem'
-!      end
-
-!-----------------------------------------------------------------------
 
 
-      call ggchem_ERC(k)
-     
-
-      return
-      end
-      
-
-
-!-----------------------------------------------------------------------
-! ggchem equilibrium computation
-! ERC 2018
-!-----------------------------------------------------------------------
-      subroutine ggchem_ERC(k)
-      implicit real*8 (a-h,o-z)
-      include 'parameter.inc'
-!      
-!     Partial pressures from GG-chem subroutine DEMO_SWEEP (ERC J=4)
-      common /partialpressure/
-     > ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,
-     > ppCS,ppH2O,ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,
-     > ppZrO,ppMgH,ppNH3,ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,
-     > ppHm,ppH2,ppH2p,ppHS,ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,
-     > ppS2,ppSiS,ppLaO,ppCH2,ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,
-     > ppCHNO,ppSiF2,ppAlCl,ppAlF,ppAlH,ppAlO,ppBeH,ppCaF,ppCH3F,ppCP,
-     > ppH2CO,ppHCl,ppHNO3,ppKCl,ppKF,ppLiCl,ppLiF,ppMgF,ppNaCl,ppNaF,
-     > ppNaH,ppPH3,ppPN,ppPO,ppPS,ppSH,ppSO2
-
-      character atnames*2, molnames*8
-      common /ggchemresults/
-     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
-      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
-     &     ,ppm(ndp),ppp(ndp),ppnmol(ndp),ppamol(ndp),ppnat(ndp)
-     &     ,pp24(ndp),pp54(ndp),pp24m(ndp),pp54m(ndp)
-     &                ,atnames(22),molnames(543)
-
-      !print *, 'Calling GGchem'
       call system('./GGchem/ggchem marcs2ggchem.in')
+      if(k.eq.1000) then 
+        open(unit=808,file='./marcs2gg_presmo.dat')
+           read(808,123) ((idmarcspres(m),idggchempres(m)), m=1, 32)
+123        format(i4,4x,i4)
+        close(808)
+        
+        open(unit=707,file='pp.dat')
+           read(707,*) (ppat(m),m=1,22)
+           read(707,*) (ppmol(m),m=1,543)
+        close(707)
 
+        do m=1, 32
+           presmogg(idmarcspres(m)) = ppmol(idggchempres(m))
+        enddo
+           presmogg(17) = ppat(2)
+      else
+        open(unit=990,file='GGchem_ppel')
+        read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ggrhodust,ppsumk
+     &     ,ppappsumk,ppnonappsumk,ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+        close(990)
+        open(unit=809, file='./marcs2gg_partpp.dat')
+             read(809,124) 
+     * ((idmarcspart(m), idggchempart(m),molnames2(m)), m=1, 75)
+124          format(i4,3x,i3,4x,a4)
+        close(809)
 
-      open(unit=777,file='PartialPressures.dat')
-      read(777,*)ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,
-     & ppCS,ppH2O,ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,
-     & ppZrO,ppMgH,ppNH3,ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,
-     & ppHm,ppH2,ppH2p,ppHS,ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,
-     & ppS2,ppSiS,ppLaO,ppCH2,ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,
-     & ppCHNO,ppSiF2,ppAlCl,ppAlF,ppAlH,ppAlO,ppBeH,ppCaF,ppCH3F,ppCP,
-     & ppH2CO,ppHCl,ppHNO3,ppKCl,ppKF,ppLiCl,ppLiF,ppMgF,ppNaCl,ppNaF,
-     & ppNaH,ppPH3,ppPN,ppPO,ppPS,ppSH,ppSO2
-      close(777)
-
-
-      open(unit=990,file='GGchem_ppel')
-       read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ppat1sumk,ppmolsumk
-      close(990)
-     
-      ppgsk = ppelGG + ppmolsumk + ppat1sumk
-      print *, "Immediately after ggchem is called these are the",
-     & "values read in marcs" 
-      print *, "pges", pges
-      print *, "Tg", Tg
-      print *, "ele pressure", ppelGG
-      print *, "pp atoms", ppat1sumk
-      print *, "pp molecules", ppmolsumk
-      print *, "ppgsk", ppgsk
-      print *, "ggmuk", ggmuk
-      print *, "ggrhok", ggrhok
-
-      open(unit=707,file='pp.dat')
-       read(707,*) (ppallat(k,m),m=1,22)
-       read(707,*) (ppallmol(k,m),m=1,543)
-       if(k.eq.1) then
-       read(707,708) ((km,atnames(m)),m=1,22)
-C       print *, ((km,atnames(m)),m=1,22),(ppallat(k,m), m=1,22)
-       read(707,*) 
-       read(707,709) (molnames(m),m=1,543)
-C       print *, (molnames(m),m=1,543),(ppallmol(k,m), m=1,543)
-C       write(6,709) (molnames(m),m=1,543)
-       end if
-708    format(i4,18x,a2)
-709    format(10a8)
-      close(707)
-
-
-
-
-      if(k.eq.1) then
-      open(unit=778,file='test.dat',status='unknown')
-      write(778,*)' K     P(H)   H-      H2      H2+     H2O     OH '
-     & ,'CH      CO CN      C2      N2      O2      NO      NH      TiO'
+        open(unit=707,file='pp.dat')
+              read(707,*) (ppallat(k,m),m=1,22)
+              read(707,*) (ppallmol(k,m),m=1,543)
+              if(k.eq.1) then
+                read(707,708) ((km,atnames(m)),m=1,22)
+                read(707,*)
+                read(707,709) (molnames(m),m=1,543)
+               end if
+708             format(i4,18x,a2)
+709             format(10a8)
+        close(707)
+        do n =1,75
+              gg_partpp(k,idmarcspart(n)) = ppallmol(k,idggchempart(n))
+        enddo
+        
       end if
-      write(778,780)k,log10(ppH),log10(ppHm),log10(ppH2),log10(ppH2p),
-     & log10(ppH2O),log10(ppOH),log10(ppCH),log10(ppCO),log10(ppCN),
-     & log10(ppC2),
-     & log10(ppN2),log10(ppO2),log10(ppNO),log10(ppNH),log10(ppTiO)
-780   format(i3,15f8.3)
-
-C      write(778,*)ppN2,ppCH,ppCO,ppCN,ppC2,ppNO,ppC2H2,ppHCN,ppC2H,ppC3,
-C     & ppCS,ppH2O,ppOH,ppTiO,ppSiO,ppCH4,ppNH,ppSiH,ppFeH,ppVO,
-C     & ppZrO,ppMgH,ppNH3,ppCO2,ppTiH,ppCaH,ppCrH,ppLiH,ppH,ppO2,
-C     & ppHm,ppH2,ppH2p,ppHS,ppC3H,ppSiC,ppSiC2,ppNS,ppSiN,ppSO,
-C     & ppS2,ppSiS,ppLaO,ppCH2,ppCH3,ppSi2C,ppSiO2,ppH2S,ppCaOH,
-C     & ppCHNO,ppSiF2
-C      close(778)
-
-      call consistency(1)
- 
       return
       end
-C
-C
+        
 C---------------------------------------------
 !
       SUBROUTINE IRRAD(K,J)
@@ -20482,78 +20187,4 @@ C
 C
 
 
-
-!-----------------------------------------------------------------------
-! Subroutine consistency is meant to be called now and then to finally
-! check whether partial pressures sum up to the gas pressure, whether
-! hydrostatic equilibrium is fullfiled etc.
-! It can be called from anywhere in the program, but is conveniently
-! called  at least from the end of LISTMO
-!-----------------------------------------------------------------------
-      subroutine consistency(iwr)
-!
-      implicit real*8 (a-h,o-z)
-      include 'parameter.inc'
-      PARAMETER (npgg=76)
-
-!     Partial pressures from GG-chem subroutine DEMO_SWEEP (ERC J=4)
-      dimension psumgg(ndp),pp1(ndp),pp2(ndp)
-     *,pp3(ndp),pp4(ndp),lkk1(ndp),lkk2(ndp),lkk3(ndp),lkk4(ndp)
-      common /partialpressure/partgg(npgg)
-      common /ggchemresults/
-     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
-
-      common /consistlist/pgg(ndp)
-      common /consistgginit/ttgg(ndp),ppgg(ndp),kk
-      common /statec/ppr(ndp),ppt(ndp),pp(ndp),gg(ndp),zz(ndp),dd(ndp),
-     *  vv(ndp),ffc(ndp),ppe(ndp),tt(ndp),tauln(ndp),ro(ndp),ntau,iter
-
-      lk = kk
-      psumgg(lk) = 0.
-        pp1(lk) = 0.0
-        pp2(lk) = 0.0
-        pp3(lk) = 0.0
-        pp4(lk) = 0.0
-      do 100 i=1,npgg
-      psumgg(lk) = psumgg(lk) + partgg(i)
-         if(partgg(i).ge.pp1(lk)) then
-              lkk1(lk) = i
-              pp1(lk) = max(pp1(lk),partgg(i))
-        else if(partgg(i).ge.pp2(lk)) then
-              lkk2(lk) = i
-              pp2(lk) = partgg(i)
-        else if(partgg(i).ge.pp3(lk)) then
-              lkk3(lk) = i
-              pp3(lk) = partgg(i)
-        else if(partgg(i).ge.pp4(lk)) then
-              lkk4(lk) = i
-              pp4(lk) = partgg(i)
-        end if
-100   continue
-C      print 200,psumgg(k)
-C      if(kk.le.1) write(6,*)
-C     &  'k,ttgg(k),ppgg,psumgg,pp1,pp2,pp3,lkk{1,2,3}'
-C           k = kk
-C           write(6,210) k,ttgg(k),ppgg(k),psumgg(k)
-C     &    ,pp1(k),pp2(k),pp3(k),lkk1(k),lkk2(k),lkk3(k)
-C       if(kk.eq.ntau) then 
-C       write(6,212)
-C     > ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-C     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
-C      if(iwr.ge.2 ) then
-C      write(6,*) 'kk,iwr,ndp,ntau = ',kk,iwr,ndp,ntau
-C           write(6,*) 'Consistency check (ppgg from call to GGchem):'
-C           write(6,*)'k,ttgg(k),ppgg(k),psumgg(k)[dyn/cm2],lkk1-3(k)'
-C           do 120 k=1,1       !ntau
-C           write(6,200) k,ttgg(k),ppgg(k),psumgg(k),pp1(k),pp2(k),pp3(k)
-C     &    ,lkk1(k),lkk2(k),lkk3(k)
-C120        continue
-C       end if
-200   format(i3,f8.1,1p5e10.2,3i3)
-210   format(i3,f8.1,1p5e10.2,3i3)
-212   format(1p10e10.2)
-
-      return
-      end
 
