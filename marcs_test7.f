@@ -810,7 +810,7 @@ c        COMMON SHARED BY GGCHEM
      > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
      > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
-     >                ,gg_partpp(ndp,75)
+     >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
      >                ,idmarcspres,idggchempres
      >                ,idmarcspart,idggchempart
@@ -3233,7 +3233,7 @@ C     &  xmettryck(ndp,maxmet),xiontryck(ndp,maxmet)
       integer, dimension(75) :: idmarcspart, idggchempart
       integer, dimension(32) :: idmarcspres, idggchempres       
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
-     >                ,gg_partpp(ndp,75)
+     >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
      >                ,idmarcspres,idggchempres
      >                ,idmarcspart,idggchempart
@@ -12423,6 +12423,7 @@ C
       COMMON/CLINE3/GLAMD,JLBDS
       COMMON/LDOPAC/ ALES,BLES
 C
+      print *, "IREAD", IREAD
       READ(IREAD,100)JLBDS,ALESX,BLESX
       IF(JLBDS.GT.1) GOTO 31
 C ALLOW ONE POINT STANDARD OPACITY
@@ -12781,7 +12782,7 @@ C atms,ions,spec ~ highest index of neutral atoms, ions, species total
      > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
       integer, dimension(75) :: idmarcspart, idggchempart
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
-     >                ,gg_partpp(ndp,75)
+     >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
      >                ,idmarcspres(32),idggchempres(32)
      >                ,idmarcspart,idggchempart
@@ -19944,7 +19945,7 @@ c and total molecular pressure.
      > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
      > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
-     >                ,gg_partpp(ndp,75)
+     >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
      >                ,idmarcspres,idggchempres
      >                ,idmarcspart,idggchempart
@@ -20014,6 +20015,9 @@ c and total molecular pressure.
 709             format(10a8)
         close(707)
         do n =1,75
+              print *,"n", n
+              print *,"id in marcs ",  idmarcspart(n)
+              print *, "id in ggchem", idggchempart(n)
               gg_partpp(k,idmarcspart(n)) = ppallmol(k,idggchempart(n))
         enddo
         
