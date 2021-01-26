@@ -329,7 +329,7 @@ C
         molh =0
       endif
 
-      if(pe(ntp).le.1.e-99) then
+      if(pe(ntp).le.1.e-33) then
         print *, "Electron pressure too small in ABSKO"
       end if
 
@@ -367,6 +367,7 @@ C
 C        READING  OF A NEW WAVELENGTH SET IF INDICATED BY ISET
     5 IF(ISET.EQ.ISETP)GO TO 6
       IREADP=IRESET(ISET)
+      PRINT *, "iread before xla and xla3 are read in absko", IREADP
    51 READ(IREADP,END=52)ISETP,NLB,XLA,XLA3,NABKOF,ABKOF,NKOMPL,KOMPLA
       GO TO 5
    52 REWIND IREADP
@@ -1555,6 +1556,7 @@ C        1. COMPUTATION OF WAVELENGTH-INDEPENDENT QUANTITIES
 C
       HN=1./(XMH*XMY(ntp))
       HNH=F1*HN
+      print *, "F1 in DETABS", F1
 C        H-
       FAKT(1)=PE(NTP)*HNH*1.E-17/XKHM
       FAKT(18)=PE(NTP)*HNH*2.E-26/PART(1,1)
@@ -2289,7 +2291,7 @@ C        SEARCHING IN WAVELENGTH
       IHELP=JJ
       IF(XLA(J)-XLATB(JJ))25,24,24
    24 LAMBI=JJ
-   25 CONTINUE
+   25 CONTINUEB(KOMP)=AFAK(KFAK)*ABKOF(INDEX)
       IF(IHELP-1)45,45,26
    26 IF(KVADL)33,33,27
    33 IF(NLATB-LAMBI-1)41,31,31
@@ -2937,7 +2939,8 @@ C        **** 4 ****
 C
 C        READING OF DATA FOR THE PARTITION FUNCTIONS.
 C        FOR THE SYMBOLS, SEE ABOVE.
-C      
+C
+      print*, "IREAD BEFORE NJ IS READ", IREAD      
       READ(IREAD,103)(NJ(I),I=1,NEL)
       JA=1
       JB=1
@@ -3256,6 +3259,7 @@ C        SOME QUANTITIES, ONLY DEPENDENT ON T
    52 A(J)=FL2(J)*TETA
 C        A=ALFA(BASCHEK ET AL., CITED ABOVE)
 C
+      PRINT *, "NQTEMP", NQTEMP
       IF(NQTEMP.EQ.0)GO TO 53
 C
 C        PREPARATION FOR INTERPOLATION OF PARTITION FUNCTIONS IN T
@@ -3307,6 +3311,7 @@ C        SHOULD ELEMENT NO. I BE CONSIDERED
 C
 C        BEGINNING OF LOOP OVER STAGES OF IONIZATION ('THE J-LOOP')
     9 DO19 J=1,NJP
+      print *, "NJP ", NJP
       JM1=J-1
 C
 C        SHOULD STAGE OF IONIZATION NO. J BE CONSIDERED
@@ -3316,13 +3321,17 @@ C        SHOULD STAGE OF IONIZATION NO. J BE CONSIDERED
       GO TO 18
 C
 C        WHICH KIND OF PARTITION FUNCTION SHOULD BE COMPUTED
-C
-   10 IF(IQFIX(I,J)-1)14,11,13
+
+      
+   
+   10   IF(IQFIX(I,J)-1)14,11,13
    11 IF(T.LT.TPARF(1).OR.T.GT.TPARF(4))GO TO 13
+      print *, "in statement 11"
       PARTP=PART(I,J)
       IF(ITP.GT.0)GO TO 15
 C
 C        PARTITION FUNCTIONS TO BE INTERPOLATED IN T
+      print *, "in interpolation of pf"
       JPARF=(JA-1)*4+1
       PARTP=0.
       DO12 IP=1,4
@@ -3331,13 +3340,15 @@ C        PARTITION FUNCTIONS TO BE INTERPOLATED IN T
       GO TO 15
 C
 C        PARTITION FUNCTIONS FOLLOWING TRAVING ET AL., ABH. HAMB. VIII,1 (1966)
-   13 PARTP=QTRAV(TETA,H(J),J,JA)
+  
+   13  PARTP=QTRAV(TETA,H(J),J,JA)
       GO TO 15
 C
 C        THE PARTITION FUNCTION IS CONSTANT
-   14 PARTP=PARCO(JA)
+   14 print *, "constant partition function"  
+      PARTP=PARCO(JA)
    15 PART(I,J)=PARTP
-   
+  
 C
 C        IONIZATION EQUILIBRIA AND TOTAL NUMBER OF ELECTRONS
 C
@@ -3447,7 +3458,9 @@ C                      called in TEST_TSUJI )
 *********
 C
 C        FORMATION OF MOLECULES. ONLY H2 AND H2+
-   41 CALL MOLEQ(T,PE,HJONH,XIH,XKHM,XIHM,XNENH,F1,F2,F3,F4,F5,FE,FSUM,
+      
+   41 PRINT *, "moleq is called"
+       CALL MOLEQ(T,PE,HJONH,XIH,XKHM,XIHM,XNENH,F1,F2,F3,F4,F5,FE,FSUM,
      *   EH)
 
 *
@@ -3481,8 +3494,10 @@ C     *,' XKHM,XIHM,XNECNO,F1,F2,F3,F4,F5 = '
 C      write(7,*) T,PE,HJONH,HJONC,HJONN,HJONO,ABUC,ABUO,ABUN,XIH,XKHM
 C     *,XIHM,XNECNO,F1,F2,F3,F4,F5
 C      write(7,*) ' now call mol'
+      print *, "mol is called"
       CALL MOL(T,PE,HJONH,HJONC,HJONN,HJONO,ABUC,ABUO,ABUN,XIH,XKHM,XIHM
      *,XNECNO,F1,F2,F3,F4,F5)
+      print*, "F1 after MOL is called", F1
       SUMPMO=0.
       PRESMO(1)=FHE*PK(1)
       PRESMO(2)=FHE*FHE*PK(2)
@@ -3547,7 +3562,8 @@ C PE*SUMM/FE = sum partial pressures from all nuclei not HCNO.
       GOTO 46
 C
 C        NO MOLECULES
-   42 F2=ANJON(1,2)
+   42 print *, "in statement 42 in JON"
+      F2=ANJON(1,2)
       FE=XNENH+F2
       F1=ANJON(1,1)
       F3=0.
