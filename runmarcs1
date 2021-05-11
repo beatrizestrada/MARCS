@@ -21,11 +21,11 @@ cd $TMPDIR
 
 #***************************
 cp mxms7a.input  mxms7.input
-cp models/t20g45mol52K2.arciv arcivaaa.dat
+cp models/t25g45K3339pe2mol52.arciv arcivaaa.dat
 ./marcs_test7
 
-mv mxmodel.dat     	$CWD/models/testing.dat 
-mv arcivaab.dat    	$CWD/models/testing.arciv
+mv mxmodel.dat     	$CWD/models/irrad_test.dat 
+mv arcivaab.dat    	$CWD/models/irrad_test.arciv
 #***************************
 
 mv GGchem_ppel     	$CWD/GGchem_ppel
@@ -33,6 +33,7 @@ mv mxms7.output    	$CWD/mxms7.output
 mv MOL2.dat        	$CWD/MOL2.dat
 mv pp.dat        	$CWD/pp.dat
 mv wlos.dat        	$CWD/wlos.dat
+mv ndensity.dat     $CWD/ndensity.dat
 
 rm spectrum.dat
 rm fort.*
