@@ -77,6 +77,18 @@ C      STEFF=5770
      *    eps(max_eps,max_lay),temp(max_lay),pgas(max_lay),n_lay,idust
       common /cdustopac/ dust_abs(ndp,nwl), dust_sca(ndp,nwl)
 
+      character atnames*2, molnames*8, molnames2*4
+      common /ggchemresults/
+     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
+     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk,rhon_total
+      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,rhonallat(ndp,22),rhonallmol(ndp,543)
+     >                ,gg_partpp(ndp,400)
+     >                ,presmogg(33),ppat(22),ppmol(543)
+     >                ,idmarcspres,idggchempres
+     >                ,idmarcspart,idggchempart
+     >                ,atnames(22),molnames(543), molnames2(75)
+
 
 ! Initiation
       call gettime(0)
@@ -816,6 +828,7 @@ c        COMMON SHARED BY GGCHEM
       common /ggchemresults/
      > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
      > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+      character atnames*2, molnames*8
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
      >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
@@ -825,7 +838,11 @@ c        COMMON SHARED BY GGCHEM
       
       CHARACTER*8 SOURCE,ABNAME
       INTEGER MOLH, JUMP
-C     
+      print*, "at archiv"
+      do j=1, 15
+            print*, atnames(j)
+      end do
+            
 C
 c      print *, "archiv called"
       IARCH=LUN
@@ -3892,6 +3909,7 @@ C atms,ions,spec ~ highest index of neutral atoms, ions, species total
       common /ggchemmu/ggmu(NDP),ggrho(NDP),ppsum(ndp),ppappsum(ndp),
      &   ppnonappsum(ndp),tg(ndp),pges(ndp)
      &  ,ppat1sum(ndp),ppat2sum(ndp),ppmolsum(ndp),ppgs(ndp)
+      
       character atnames*2, molnames*8
       
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
@@ -3915,7 +3933,7 @@ C The 54 molecules we have absorption coefficients for (May 2020) are:
      & 'NH3 ','SN  ','PH3 ','PN  ','PO  ','PS  ','HS  ','SIS ','SO2 '/
 C the 15 of the 22 neutral atoms we list in the output (...dat) are:
       dimension kpratoms(15)
-      data kpratoms /1, 2,3,4,5,6, 7, 8, 10,11,12,13,14,15,17/
+      data kpratoms /1, 2,3,4,5,6, 7, 8,10,11,12,13,14,15,17/
 C                    H He C N O Na Mg Si Fe Al Ca Cr Ti S  K
 C all the 22 neutral atoms computer in GGchem at can be listed are:
 C      1, 2, 3,4,5,6, 7, 8, 9 10,11,12,13,14,15 16,17,18 19 20 21 22 /
@@ -4017,7 +4035,7 @@ C  SI2C2   VC2    TIC4    VC4
 C  540     541    542     543
 
 
-
+      
 
 *
       FLUMAG(I)=-2.5*log10(FLUXME(I))-STMAGN
@@ -4037,8 +4055,9 @@ C OPAC is called for each (continuums)wavelength and depth. OPAC calls
 C OSTABLOOK which runs the whole setup of GGchem.
 C Probably that's why it takes up all the computing time from the last
 C iteration to the printing of the model. Maybe it could be avoided?
+      
 
-
+      
       CALL ROSSOS
 
       IREAD=5
@@ -4851,10 +4870,18 @@ C The neutral atoms:
         WRITE(7,2234)
 2234    FORMAT(//' P A R T I A L  P R E S S U R E S   ',
      &  ' of 15 selected neutral atoms of the 22 calculated in GGchem')
-        do j=1, 15
-            print*, kpratoms(j)
-            print*, atnames(kpratoms(j))
-        end do
+      open(unit=707,file='pp.dat')
+      read(707,*) (ppallat(k,m),m=1,22)
+      read(707,*) (ppallmol(k,m),m=1,543)
+
+      read(707,708) ((km,atnames(m)),m=1,22)
+      read(707,*)
+      read(707,709) (molnames(m),m=1,543)
+
+708         format(i4,18x,a2)
+709           format(10a8)
+
+      close(707)
         WRITE(7,3148) (atnames(kpratoms(j)),j=1,15)
         DO I=1,JTAU
                  WRITE(7,'(I2,15F8.3)')I,
@@ -7285,6 +7312,17 @@ C      COMMON/COPPR/oppr(15,3,120,3),jvxmax,itxmax  !15mol,10dpt,100wn
       common /ggchemmu/ggmu(NDP),ggrho(NDP),ppsum(ndp),ppappsum(ndp),
      &   ppnonappsum(ndp),tg(ndp),pges(ndp)
      &  ,ppat1sum(ndp),ppat2sum(ndp),ppmolsum(ndp),ppgs(ndp)
+      character atnames*2, molnames*8
+      common /ggchemresults/
+     > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
+     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk,rhon_total
+      common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,rhonallat(ndp,22),rhonallmol(ndp,543)
+     >                ,gg_partpp(ndp,400)
+     >                ,presmogg(33),ppat(22),ppmol(543)
+     >                ,idmarcspres,idggchempres
+     >                ,idmarcspart,idggchempart
+     >                ,atnames(22),molnames(543), molnames2(75)
       common /consistgginit/ttgg(ndp),ppgg(ndp),kk
 C      
 ! Dust
@@ -7338,7 +7376,7 @@ C           write(6,1267) (ppel_old(imo),imo=1,ntau,5)
 C           write(6,1267) (ppel(imo),imo=1,ntau,5)
 C            write(6,1267) ((pp(imo)-ppr(imo)-ppt(imo)),imo=1,ntau,5)
 C            end if
-
+            
             if(first) then
             write(6,*)'OPAC J=1 before OSTABLOOK; ntau,nOSmol='
      &              ,ntau,nosmol
@@ -20112,17 +20150,14 @@ c and total molecular pressure.
         open(unit=707,file='pp.dat')
               read(707,*) (ppallat(k,m),m=1,22)
               read(707,*) (ppallmol(k,m),m=1,543)
-              if(k.eq.1) then
+              
                 read(707,708) ((km,atnames(m)),m=1,22)
-                do m=1, 22
-                  print*, atnames(m)
-                end do
                 read(707,*)
                 read(707,709) (molnames(m),m=1,543)
 
 708             format(i4,18x,a2)
 709             format(10a8)
-              end if
+              
         close(707)
         do n =1,75
               gg_partpp(k,idmarcspart(n)) = ppallmol(k,idggchempart(n))
