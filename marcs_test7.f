@@ -1,5 +1,5 @@
 !-----------------------------------------------------------------------
-C BEMÆRK:         RS=0.00465047
+C BEMï¿½RK:         RS=0.00465047
 C      RAU=1.00
 C      STEFF=5770
 
@@ -355,9 +355,11 @@ C
 C        WE STORE THE FAKT ARRAY, MADE IN JON-DETABS IN LONGER ARRAYS NAMELY
 C                  IN AFAK FOR TEMPERATURE-INDEPENDENT COMPONENTS
 C                  IN FAKTP FOR TEMPERATURE-DEPENDENT ONES
+
       DO2 KOMP=1,KOMPR
       AFAK(KFAK)=FAKT(KOMP)
     2 KFAK=KFAK+1
+
       DO4 KOMP=KOMPS,NKOMP
       FAKTP(IFAK)=FAKT(KOMP)
       KFAK=KFAK+NOFAK(IFAK)
@@ -367,7 +369,6 @@ C
 C        READING  OF A NEW WAVELENGTH SET IF INDICATED BY ISET
     5 IF(ISET.EQ.ISETP)GO TO 6
       IREADP=IRESET(ISET)
-      PRINT *, "iread before xla and xla3 are read in absko", IREADP
    51 READ(IREADP,END=52)ISETP,NLB,XLA,XLA3,NABKOF,ABKOF,NKOMPL,KOMPLA
       GO TO 5
    52 REWIND IREADP
@@ -427,10 +428,13 @@ C
 C
 C        COMPONENTS WITH T-DEPENDENT ABSORPTION COEFFICIENTS
       DO19 KOMP=KOMPS,NKOMP
+
       NOP=NOFAK(IFAK)
+
       IF(NOP.EQ.0)GO TO 17
       IF(KOMPLA(IU).LE.0)GO TO 17
    15 INDEX=NPLATS(IFAK)-1+KOMPLA(IU)
+
 C        THE VECTOR NPLATS IS DETERMINED BY SUBROUTINE TABS. IT GIVES THE ARRAY
 C        INDEX OF THE TEMPERATURE AT WHICH THE INTERPOLATION IN ABKOF
 C        BEGINS. NOFAK, GIVING INFORMATION ON THE T-INTERPOLATION AND
@@ -442,6 +446,7 @@ C        INTERPOLATION
       DELSUM=DELSUM+AFAK(KFAK)*ABKOF(INDEX)
       KFAK=KFAK+1
    16 INDEX=INDEX+1
+
 C
 C        HAS THE INTERPOLATION BEEN MADE ON THE LOGARITHM
       IF(ILOGTA(KOMP).GT.0)DELSUM=EXP(DELSUM)
@@ -464,6 +469,7 @@ C        A NEGATIVE INTERPOLATION RESULT
 C
 C        WE MULTIPLY BY WAVELENGTH-DEPENDENT  FACTORS AND ADD UP. THIS IS
 C        DONE IN DETABS.
+      
       CALL DETABS(J,JP,NTP,IOUTR)
 C
       IF(J.LE.0)GO TO 25
@@ -821,7 +827,7 @@ c        COMMON SHARED BY GGCHEM
       INTEGER MOLH, JUMP
 C     
 C
-      print *, "archiv called"
+c      print *, "archiv called"
       IARCH=LUN
       ISTAN2=1
       JSTAN2=NL(1)+1
@@ -867,6 +873,7 @@ C        THIS IS CERTAINLY QUITE UNIMPORTANT FOR MOST MODELS.
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),ISTAN2,JSTAN2,ABSKA(1),SPRIDA(1))
       else if(metpe.eq.2) then
+c      print *, "absko call in archiv "
       CALL ABSKO(1,1,T(K),PPEL(K),ISTAN2,JSTAN2,ABSKA(1),SPRIDA(1))
       end if
 
@@ -990,6 +997,7 @@ C
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),1,J,ABSKA(1),SPRIDA(1))
       else if(metpe.eq.2) then
+c      print *, "2nd absko call in archiv"
       CALL ABSKO(1,1,T(K),PPEL(K),1,J,ABSKA(1),SPRIDA(1))
       end if
       ABSKTR(J)=ABSKA(1)
@@ -1006,6 +1014,7 @@ C
       if(metpe.eq.1) then
       CALL ABSKO(1,1,T(K),PE(K),1,J,ABSKA(1),SPRIDA(1))
       else if(metpe.eq.2) then
+c      print *, "3rd absko call in archiv "
       CALL ABSKO(1,1,T(K),PPEL(K),1,J,ABSKA(1),SPRIDA(1))
       end if
       IF(J.GT.1)GO TO 31
@@ -1045,7 +1054,7 @@ C BPL therefore limited to be > 1.e-30. UGJ 900510
 C (generally changed to > 1.e-20 due to conv. problems. UGJ 961230)
 C
       COMMON /BPLC/EX,X5
-      DATA CP/1.191E27/,C2/1.438E8/
+      DATA CP/1.191E27/,C2/1.438E8/  
 
       X5=((X**2)**2)*(X/CP)
       EX=EXP(-C2/(T*X))
@@ -1526,6 +1535,7 @@ C
 C
 C        SAVE ABSORPTION COMPONENT NAMES THE FIRST TIME DETABS IS CALLED
 C
+
       IF (.NOT.FIRST) GO TO 1
       DO 2 KOMP=19,NKOMP
       ABNAME(1)=NHMIN
@@ -1548,6 +1558,7 @@ C
     1 CONTINUE
       ncall=ncall+1
 C
+   
       TETA=5040./T(NTP)
       IF(JP.GT.0)GO TO 7
 C      write(50,*) ' JP  XLA  Omega H2_CIA  He_CIA'
@@ -1556,7 +1567,7 @@ C        1. COMPUTATION OF WAVELENGTH-INDEPENDENT QUANTITIES
 C
       HN=1./(XMH*XMY(ntp))
       HNH=F1*HN
-      print *, "F1 in DETABS", F1
+c      print *, "F1 in DETABS", F1
 C        H-
       FAKT(1)=PE(NTP)*HNH*1.E-17/XKHM
       FAKT(18)=PE(NTP)*HNH*2.E-26/PART(1,1)
@@ -1583,27 +1594,33 @@ C        FREE-FREE HI ABSORPTION
       IF(H(1).LT.XNIV+0.5)ADDF=0.
       FAKT(17)=EXPJ
       HREST(NTP)=EXPJ*ADDF
-C
+
 C        H+H
       FAKT(19)=(HNH*1.E-25)*(HNH*1.E-25)*RO
+
 C        H2+
       FAKT(20)=(HNH*1.E-20)**2*RO*ANJON(1,2)/ANJON(1,1)
 C        H2-
       FAKT(21)=PE(NTP)*F5*HN
 C        C I
       FAKT(22)=ANJON(3,1)*abmarcs(3,ntp)*HN*9./PART(3,1)
+      
 C        MG I
       FAKT(23)=ANJON(8,1)*abmarcs(8,ntp)*HN/PART(8,1)
+      
 C        AL I
       FAKT(24)=ANJON(9,1)*abmarcs(9,ntp)*HN*6./PART(9,1)
+      
 C        SI I
       FAKT(25)=ANJON(10,1)*abmarcs(10,ntp)*HN*9./PART(10,1)
+
 C        HE I
       FAKT(26)=ANJON(2,1)*abmarcs(2,ntp)*HN/PART(2,1)
 C        HE-
       FAKT(27)=PE(NTP)*ANJON(2,1)*abmarcs(2,ntp)*HN
 C        ELECTRON SCATTERING
       ELS(NTP)=4.8206E-9*PE(NTP)/(T(NTP)*RO)
+      
       PH2=F5*HN*RO
       PH2=PH2*1.38E-16*0.987E-6*273.
       PHTVA(NTP)=PH2*PH2/RO
@@ -1627,6 +1644,16 @@ C        ELECTRON SCATTERING
 C        RAYLEIGH SCATTERING
       FAKRAY(NTP)=HNH*2./PART(1,1)
       H2RAY(NTP)=F5*HN
+
+c      do its=1, 27
+c            print*, "fakt ",its , " = ", fakt(its)
+c      end do
+
+c      print*, "els ", els(ntp)
+c      print*, "fakray ", fakray(ntp)
+c      print*, "h2ray ", h2ray(ntp)
+
+
       RETURN
 C        N O T E . APART FROM VECTORS HREST AND ELS, NONE OF THE
 C        TEMPERATURE- OR PRESSURE-DEPENDENT VARIABLES DEFINED ABOVE CAN
@@ -1637,7 +1664,9 @@ C        FURTHER USE ARE STORED IN SUBR. ABSKO.
 C
 C        2. WAVELENGTH-DEPENDENT FACTORS. SUMMATION.
 C        CORRECTION FOR STIMULATED EMISSION
+      
     7 EXPA=EXP(-28556.*TETA/XLA(JP))
+
    11 STIM=1.-EXPA
 C
 C        ABSORPTION
@@ -1645,8 +1674,11 @@ C        ABSORPTION
 C        H I
       DO12 KOMP=2,17
       SUMABS=SUMABS+AB(KOMP)
+
    12 CONTINUE
+      
       SUMABS=(SUMABS+HREST(NTP))*XLA3(JP)
+
       PROV(2)=SUMABS
 C        H-
       HMIN=AB(1)+AB(18)/STIM
@@ -1680,7 +1712,7 @@ C      if(lin_cia.eq.1 .and.(xla(jp).ge.5000..and.xla(jp).le.125000.))
       if(lin_cia.eq.1)
      *     SUMABS=SUMABS+H2PRES+HEPRES
       SUMABS=SUMABS*STIM
-C
+
 C        SCATTERING
       XRAY=MAX(XLA(JP),1026.0D+0)
       XRAY2=1./(XRAY*XRAY)
@@ -1688,6 +1720,9 @@ C        SCATTERING
      *FAKRAY(NTP)
       RAYH2=XRAY2*XRAY2*(8.14E-13+XRAY2*(1.28E-6+XRAY2*1.61))*H2RAY(NTP)
       SUMSCA=ELS(NTP)+RAYH+RAYH2
+
+      
+
       PROV(NPROV-2)=ELS(NTP)
       PROV(NPROV-1)=RAYH
       PROV(NPROV)=RAYH2
@@ -2119,10 +2154,12 @@ C
       REWIND ISLASK
 C
 C        LOOP OVER COMPONENTS STARTS (THE 'FIRST KOMP-LOOP')
+
       DO720 KOMP=1,NKOMP
       READ(IREAT,105)ABNAME(KOMP),SOURCE(KOMP)
       READ(IREAT,102)ILOGL,KVADL,MINEX,MAXEX,NLATB
       READ(IREAT,103)(XLATB(J),J=1,NLATB)
+
 C
 C        WE FIND THE DISCONTINUITIES IN WAVELENGTH
 C        A DISCONTINUITY IN A TABLE IS DEFINED BY TWO WAVELENGTH POINTS
@@ -2132,6 +2169,7 @@ C        WITHIN LESS THAN TWO ANGSTROEMS.
       DO700 J=2,NLATB
       IDISKV(J)=0
       IF((XLATB(J)-XLATB(J-1)).GE.2.)GO TO 700
+
       IDISKV(J-1)=1
       IDISKV(J)=1
       IDISK=1
@@ -2212,10 +2250,14 @@ C
       LF=0
   714 LF=LF+1
       NTM(KOMP,J)=LF
+      if  (komp == 17) then
+            print*, "ntm ", ntm
+      end if
       IDEL(KOMP)=J
       GO TO 719
 C        TOO MANY DIFFERENT INTERVALS IN THE T-TABLE FOR THIS COMPONENT
-  715 WRITE(IWRIT,203)KOMP,IELMAX
+  715 print*, "at statement 715"
+      WRITE(IWRIT,203)KOMP,IELMAX
       WRITE(IWRIT,206)(XTET(L),L=1,NTETB)
       STOP 'INABS 1'
 C
@@ -2291,7 +2333,7 @@ C        SEARCHING IN WAVELENGTH
       IHELP=JJ
       IF(XLA(J)-XLATB(JJ))25,24,24
    24 LAMBI=JJ
-   25 CONTINUEB(KOMP)=AFAK(KFAK)*ABKOF(INDEX)
+   25 CONTINUE
       IF(IHELP-1)45,45,26
    26 IF(KVADL)33,33,27
    33 IF(NLATB-LAMBI-1)41,31,31
@@ -2312,6 +2354,7 @@ C        ARE DISCONTINUITIES PRESENT
       IF(IDISKV(LAMBI+1).GT.0)GO TO 31
       IF(LAMBI+1.EQ.NLATB)GO TO 31
   299 CONTINUE
+
       DXX1=XLA(J)-XLATB(LAMBI)
       DXX2=XLA(J)-XLATB(LAMBI+1)
       DXX3=XLA(J)-XLATB(LAMBI+2)
@@ -2321,10 +2364,13 @@ C        ARE DISCONTINUITIES PRESENT
       A1=DXX2*DXX3/(DX21*DX31)
       A2=DXX1*DXX3/(DX21*DX32)
       A3=DXX1*DXX2/(DX31*DX32)
+     
 C
       DO30 K=1,NTETB
       ABKOF(INDEX)=A1*XKAP(LAMBI,K)-A2*XKAP(LAMBI+1,K)+A3*
      &XKAP(LAMBI+2,K)
+      
+
    30 INDEX=INDEX+1
       GO TO 59
 C
@@ -2843,6 +2889,7 @@ C
 C        **** 2 ****
 C
 C
+c      print *, "iread at start of injon ", iread 
       READ(IREAD,110)(IEL(I),I=1,NEL)    !the 16 element names H - Ni
       write(6,1101) iread,nel,(iel(i),i=1,nel)
 1101  format('iread,nel,iel:',2i3,16a3)
@@ -2879,7 +2926,6 @@ C and other routines from gem_init by common CI5.
 221   format('INJON:iread,natms,natmsact,nelem,nel: ',5i4)
 223   format(/10f6.2)
 225   format(/10a4)
-      
       do i=1,17
         abmarcs(i,1:ntau) = abinit(mx_elm(i))
         abtsuji(i,1:ntau) = abmarcs(i,1:ntau)
@@ -2909,6 +2955,7 @@ C        NUCLEI.
 C        SUMM=NUMBER OF NUCLEI OTHER THAN H, C, N, O / NUMBER OF HYDROGEN
 C
       if(idust .eq. 0) then
+c      print*, "nmet ", nmet
       if(nmet.le.0)go to 22      !->which seems to be always the case
       nu=nel-nmet+1
       do1 i=nu,nel
@@ -2929,6 +2976,8 @@ C
       summ(1:ntau)=summ(1:ntau)+abmarcs(i,1:ntau)
     3 xmy(1:ntau)=xmy(1:ntau)+abmarcs(i,1:ntau)*ai(i)   !AI(I)=atomic weight, so XMY=#AU/H_nuclei
       abmarcs(17,1:ntau)=abmarcs(17,1:ntau)/aha
+c      print*, "abmarcs(3) ", abmarcs(3,1)
+     
       xmy(1:ntau)=xmy(1:ntau)/ai(1)            !AI(1) = 1.008, so on AU scale.
       sumh(1:ntau)=sum(1:ntau)/aha-1.
       summ(1:ntau)=summ(1:ntau)-abmarcs(1,1:ntau)-abmarcs(3,1:ntau)-
@@ -2940,12 +2989,13 @@ C
 C        READING OF DATA FOR THE PARTITION FUNCTIONS.
 C        FOR THE SYMBOLS, SEE ABOVE.
 C
-      print*, "IREAD BEFORE NJ IS READ", IREAD      
+  
       READ(IREAD,103)(NJ(I),I=1,NEL)
       JA=1
       JB=1
       JC1=1
       DO11 I=1,NEL
+
       NJP=NJ(I)
       DO11 J=1,NJP
       JAMEM(I,J)=JA
@@ -2955,6 +3005,7 @@ C        JBBEG AND JCBEG ARE INDICATORS USED BY FUNCTION QTRAV
 C
       READ(IREAD,104)G0(JA),NK(JA)
       NKP=NK(JA)
+
       IQFIX(I,J)=2
 C        IQFIX(I,J)=2 MEANS THAT A 'FULL' PARTITION FUNCTION SHOULD BE
 C        COMPUTED. THIS MAY BE CHANGED UNDER **** 7 ****.
@@ -2962,6 +3013,7 @@ C
       JA=JA+1
       DO11 K=1,NKP
       READ(IREAD,105)XION(JB),G2(JB),XL(JB),NL(JB)
+
       IF(K.GT.1)GO TO 9
       XIONG(I,J)=XION(JB)
 C        XIONG IS THE IONIZATION ENERGY IN ELECTRON VOLTS FOR THE GROUND STATE,
@@ -2992,6 +3044,7 @@ C        TO BE DISREGARDED.
       DO12 I=1,NEL
       NJP=NJ(I)
       READ(IREAD,107)IELEM(I),(ION(I,J),J=1,NJP)
+
    12 CONTINUE
 C
 C        **** 6 ****
@@ -3247,6 +3300,7 @@ C        STATEMENT FUNCTION FOR 10.**
       EXP10(X)=EXP(2.302585*X)
 C
       ITP=1
+
 C
 C        IS T=THE TEMPERATURE OF THE PRECEDING CALL
       IF(ABS((T-TP)/T).LT.1.E-8)GO TO 53
@@ -3259,7 +3313,7 @@ C        SOME QUANTITIES, ONLY DEPENDENT ON T
    52 A(J)=FL2(J)*TETA
 C        A=ALFA(BASCHEK ET AL., CITED ABOVE)
 C
-      PRINT *, "NQTEMP", NQTEMP
+c      PRINT *, "NQTEMP", NQTEMP
       IF(NQTEMP.EQ.0)GO TO 53
 C
 C        PREPARATION FOR INTERPOLATION OF PARTITION FUNCTIONS IN T
@@ -3300,6 +3354,8 @@ C
 C        BEGINNING OF LOOP OVER ELEMENTS ('THE I-LOOP').
       DO24 I=1,NEL
       NJP=NJ(I)
+
+
 C
 C        SHOULD ELEMENT NO. I BE CONSIDERED
       IF(IELEM(I).GT.0)GO TO 9
@@ -3311,8 +3367,8 @@ C        SHOULD ELEMENT NO. I BE CONSIDERED
 C
 C        BEGINNING OF LOOP OVER STAGES OF IONIZATION ('THE J-LOOP')
     9 DO19 J=1,NJP
-      print *, "NJP ", NJP
       JM1=J-1
+
 C
 C        SHOULD STAGE OF IONIZATION NO. J BE CONSIDERED
       IF(ION(I,J).GT.0)GO TO 10
@@ -3322,16 +3378,13 @@ C        SHOULD STAGE OF IONIZATION NO. J BE CONSIDERED
 C
 C        WHICH KIND OF PARTITION FUNCTION SHOULD BE COMPUTED
 
-      
-   
-   10   IF(IQFIX(I,J)-1)14,11,13
+   10 IF(IQFIX(I,J)-1)14,11,13
    11 IF(T.LT.TPARF(1).OR.T.GT.TPARF(4))GO TO 13
-      print *, "in statement 11"
       PARTP=PART(I,J)
       IF(ITP.GT.0)GO TO 15
 C
 C        PARTITION FUNCTIONS TO BE INTERPOLATED IN T
-      print *, "in interpolation of pf"
+c      print *, "in interpolation of pf"
       JPARF=(JA-1)*4+1
       PARTP=0.
       DO12 IP=1,4
@@ -3345,10 +3398,11 @@ C        PARTITION FUNCTIONS FOLLOWING TRAVING ET AL., ABH. HAMB. VIII,1 (1966)
       GO TO 15
 C
 C        THE PARTITION FUNCTION IS CONSTANT
-   14 print *, "constant partition function"  
-      PARTP=PARCO(JA)
+   14 PARTP=PARCO(JA)
+c      print *, "constant partition function"
    15 PART(I,J)=PARTP
-  
+      
+
 C
 C        IONIZATION EQUILIBRIA AND TOTAL NUMBER OF ELECTRONS
 C
@@ -3365,6 +3419,7 @@ C
       DO20 J=2,NJP
       LL=NJP-J+1
    20 FIL=1.+F(LL)*FIL
+      
       ANJON(I,1)=1./FIL
       XNEN=0.
       DO21 J=2,NJP
@@ -3494,10 +3549,10 @@ C     *,' XKHM,XIHM,XNECNO,F1,F2,F3,F4,F5 = '
 C      write(7,*) T,PE,HJONH,HJONC,HJONN,HJONO,ABUC,ABUO,ABUN,XIH,XKHM
 C     *,XIHM,XNECNO,F1,F2,F3,F4,F5
 C      write(7,*) ' now call mol'
-      print *, "mol is called"
+c      print *, "mol is called"
       CALL MOL(T,PE,HJONH,HJONC,HJONN,HJONO,ABUC,ABUO,ABUN,XIH,XKHM,XIHM
      *,XNECNO,F1,F2,F3,F4,F5)
-      print*, "F1 after MOL is called", F1
+c      print*, "F1 after MOL is called", F1
       SUMPMO=0.
       PRESMO(1)=FHE*PK(1)
       PRESMO(2)=FHE*FHE*PK(2)
@@ -3607,8 +3662,11 @@ C
 C
 C     write(6,*) ' t,pe,yypg,yyrho,yye,eh,ejon,enamn,p6_jon(kl),phe = '
 C     write(6,1342) t,pe,YYPG,YYRHO,YYE,EH,EJON,ENAMN,p6_jon(kl),phe
+c      print *, "FE just before RO is evaluated ", FE
+      
 
       RO=PE*XMY(kl)*(XMH/XKBOL)/(FE*T)
+
 
       IF (JUMP.GE.1 .and. MOLH.eq.1) THEN
 
@@ -3709,6 +3767,7 @@ C
       COMMON /CXLSET/XL(20,10),NSET,NL(10)
 C
 C COMPUTE KAPPA(5000.). 73.10.17 *NORD*.
+c      print *, "absko call in kap5 "
       CALL ABSKO(1,1,T,PE,1,NL(1)+1,ABSK,SPRID)
       RETURN
       END
@@ -4792,6 +4851,7 @@ C The neutral atoms:
         WRITE(7,2234)
 2234    FORMAT(//' P A R T I A L  P R E S S U R E S   ',
      &  ' of 15 selected neutral atoms of the 22 calculated in GGchem')
+        print*, (atnames(kpratoms(j)),j=1,15)
         WRITE(7,3148) (atnames(kpratoms(j)),j=1,15)
         DO I=1,JTAU
                  WRITE(7,'(I2,15F8.3)')I,
@@ -5519,7 +5579,7 @@ C        COMPUTE U, B, V, R, I AND COLOURS
      * '-',f6.1,' % was assumed to be molcular C2H2')
  2534 FORMAT(' THE OS SAMPLING HAVE BEEN PERFORMED IN',I3,' INTERVALS')
  2535 FORMAT(' FROM',F6.1,' CM-1 TO',F9.1,' CM-1')
- 2536 FORMAT(' (..which is identical to from',F9.1,' Å to',F6.1,' mu)')
+ 2536 FORMAT(' (..which is identical to from',F9.1,'  to',F6.1,' mu)')
  2537 FORMAT(' THE CHOSEN INTERVAL-BEGINNING AND STEPLENGTH IN CM-1:')
  2538 FORMAT(8F9.1)
   254 FORMAT(' THE STROEMGREN EQUATION HAS BEEN USED FOR THE UPPERMOST',
@@ -6286,6 +6346,7 @@ C     &               XIH,XKHM,XIHM,XNEN,F1,F2,F3,F4,F5
          FS = FOLD(KL,5)
          FK = FOLD(KL,6)
          FE = FOLD(KL,7)
+
          FT = FOLD(KL,8)
 C         write(7,*)' input in mol:kl,fold(kl,1-8)= ',
 C     *             kl,(fold(kl,i),i=1,8)
@@ -6300,10 +6361,12 @@ C ...OR ESTIMATE THESE VALUES...
 C
 C FH, FROM H=HI+HII+H2+H-
       FE=XNENSK
+
       CAM=FE*WKH/(2.D0*PK(2))
       ROOT=DSQRT(DABS(CAM*CAM+FE/PK(2)))
       FH=-CAM+ROOT
       FE=FH*(G2-PK(1))+XNENSK
+
       IF (FE.GT.0.D0) GO TO 110
       R=PK(2)/PK(1)/PK(1)
       CAM=(WKH*XNENSK/PK(1)-1.D0-2.D0*XNENSK*R)
@@ -6534,12 +6597,16 @@ C      write(7,*) ' now in mol'
 C      write(7,*) (pk(i),i=1,33)
 C      write(7,*) ' FH,FC,FN,FO,FS,FK,FT,FE = ',FH,FC,FN,FO,FS,FK,FT,FE
 C      write(7,*) ' f,a = ',f,a
+
       DO 163 J=1,500
+c        
         CALL MOLMAT(PK,G2,GC,GN,GO,GS,GK,GT,ABUC,ABUN,ABUO
      &             ,AS,AK,AT,FH,FC,FN,FO,FS,FK,FT,FE,XNENSK,F,A)
 C        CALL MOLMAT(PK,G2,GC,GN,GO,GS,GK,ABUC,ABUN,ABUO
 C     &             ,AS,AK,FH,FC,FN,FO,FS,FK,FE,XNENSK,F,A)
+
         CALL AINV3(A,M)
+
         EMAX=0.D0
         DO 162 L=1,M
           D(L)=0.D0
@@ -6550,6 +6617,7 @@ C     &             ,AS,AK,FH,FC,FN,FO,FS,FK,FE,XNENSK,F,A)
           FF(L) = max(FF(L),1.d-99)
           if (D(L).le.1.d-99) go to 162
           EMAX=DMAX1(DABS(D(L)/FF(L)),EMAX)
+
 162     CONTINUE
 Ctemp UGJ 020308:   IF (EMAX.LT.DIFF) GO TO 170
 163   CONTINUE
@@ -6631,12 +6699,15 @@ C
       FOLD(KL,6) = FK
       FOLD(KL,7) = FE
       FOLD(KL,8) = FT
+
+
 C
 C      if (kl.eq.1 .or. kl/10*10.eq.kl) then
 C        write(6,661) kl,akd(31),pk(31),ft,fe,fte
 C      end if
 C661   format (' MOL:k,akd,pk,ft,fe,fte:',i3,5e9.2)
 C
+
       RETURN
       END
 C
@@ -6690,7 +6761,9 @@ C        CALCULATION OF THE EQUILIBRIUM
       F3=F3D
       F4=F4D
       F5=F5D
+
       FE=FED
+
       FSUM=FSUMD
 C
 C        CALCULATION OF THE ENERGIES
@@ -6780,6 +6853,7 @@ C     AO=DBLE(AAO)
 C     AS=DBLE(AAS)
 C     AK=DBLE(AAK)
 C     AT=DBLE(AAT)
+
       GH=GGH
       GC=GGC
       GN=GGN
@@ -6905,6 +6979,7 @@ CCC
       A(8,6)=0.
       A(8,7)=0.
       A(8,8)=T
+
 CCC
       RETURN
       END
@@ -7033,7 +7108,6 @@ C READ OLD STATE FROM unit 16
 
       READ(16,*) NTAU,ITER
       ITER=0
-C      print*,'ntau,iter',ntau,iter
       DO 100 I=1,11
       IST=(I-1)*NDP
       READ(16,*) (B(IK),IK=IST+1,IST+NTAU)
@@ -7337,7 +7411,10 @@ C   ******** HERE WE ASSUME THAT THE FIRST SET IS USED FOR ROSSELAND MEAN
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM1,JMEM1,ABSK1,SPRID1)
       else if(metpe.eq.2) then
+       
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM1,JMEM1,ABSK1,SPRID1)
+       
+      
       end if
 
 
@@ -7365,7 +7442,9 @@ C        NEW COMPUTATION OF CONTINOUOS ABSORPTION COEFFICIENT
       if(metpe.eq.1) then
       CALL ABSKO(NEWT,JTAU,T,PE,IMEM1,JMEM1,ABSK1,SPRID1)
       else if(metpe.eq.2) then
+
       CALL ABSKO(NEWT,JTAU,T,PPEL,IMEM1,JMEM1,ABSK1,SPRID1)
+      
       end if
 
       GO TO 9
@@ -7630,6 +7709,7 @@ C
       LOGICAL PF,PFE,PFD,FIXROS,ITSTOP
       DATA NEWT/2/
 C
+
       CALL ABSKO(NEWT,1,T,PE,1,0,RSP,DUM)
       NEWT=1
       ROSSOP=RSP
@@ -8119,6 +8199,8 @@ C
       TP=T(NTP)
       KFAK=KFAK+KOMPR
       DO81 KOMP=KOMPS,NKOMP
+c      print*, "komp ", komp
+c      print*, "isvit ", isvit(komp)
       IF(ISVIT(KOMP).GT.0)GO TO (51,61,70),NSVIT
       IF(ITETA(KOMP).LE.0)GO TO 2
     1 TS=5040./T(NTP)
@@ -8126,6 +8208,7 @@ C
     2 TS=T(NTP)
 C
 C        SEARCHING
+      
     3 IF((TS-TBOT(KOMP,1)).GE.0.)GO TO 10
       IF(MINET(KOMP).LE.0)GO TO 70
 C
@@ -8139,7 +8222,9 @@ C
 C        SEARCHING CONTINUES
    10 INTAP=1
       IDP=IDEL(KOMP)
+      
       DO11 I=1,IDP
+      
       AP=(TS-TBOT(KOMP,I))/DELT(KOMP,I)
       IP=INT(AP)
       INTA=IP+INTAP
@@ -8230,13 +8315,14 @@ C
 C
 C 'TAUSCA' INITIATES A TAU SCALE FROM INPUT LOGTAU AND LOGTAU-DIFFERENCE
 C *NORD*
+      
 C
       include 'parameter.inc'
 C
       DIMENSION TAULNX(NDP)
       COMMON /TAUC/TAU(NDP),DTAULN(NDP),JTAU
       COMMON /STATEC/DUM1(10*NDP),TAULN(NDP),RO(NDP),NTAU,ITER
-
+     
       K=1
 C
 C READ LOGTAU AND LOGTAU-DIFFERENCE
@@ -8245,6 +8331,7 @@ C
 1     CONTINUE
       READ(5,50) T2,D2
       TLIM=T2-.5*D1
+      
       T=T1
 2     CONTINUE
 C
@@ -8269,6 +8356,7 @@ C
       DO 4 K=2,JTAU
 4     DTAULN(K)=TAULNX(K)-TAULNX(K-1)
 C
+
       RETURN
 50    FORMAT(5(7X,F8.0))
       END
@@ -8657,7 +8745,7 @@ C CALCULATE DETAILED ROSSELAND MEAN
       KL=1
       DUMMY=ROSSOP(TT(1),PPE(1))
       PGA=PGC
-      write(6,1277) ntau,nwtot
+c      write(6,1277) ntau,nwtot
 1277  format('calling opac from solve for (t,pe), to compute',
      *       ' x(k,j), s(k,j) in',i3,' depths and',i6,' wavelengths')
       DO 116 K=1,NTAU
@@ -8707,11 +8795,11 @@ C      DPEX=0.001
 C
       if(irrin.ge.1) then
       open(unit=886,file='IR2.dat',status='replace')
-      open(unit=885,file='synspec.dat',status='unknown')
+c      open(unit=885,file='synspec.dat',status='unknown')
       WRITE(886,*) 'K,    J,  WLOS(J),       X        S,   TAUTAU'
       DO 912 J=1,NWTOT
         CALL OPAC(J,X,S)
-        read(885,*) synspec(j)
+c        read(885,*) synspec(j)
         DO 912 K=1,NTAU
           TAUTAU(K)=(X(K)+S(K))*PP(K)/GRAV
           WRITE(886,8851) K, J, wlos(J), X(K), S(K),TAUTAU(K)
@@ -12439,11 +12527,13 @@ C
       COMMON/CLINE3/GLAMD,JLBDS
       COMMON/LDOPAC/ ALES,BLES
 C
-      print *, "IREAD", IREAD
+
       READ(IREAD,100)JLBDS,ALESX,BLESX
+
       IF(JLBDS.GT.1) GOTO 31
 C ALLOW ONE POINT STANDARD OPACITY
       READ(IREAD,102)XL(1)
+
       W(1)=1.
       NLB=1
       RETURN
@@ -12454,8 +12544,8 @@ C SET UV OPACITY CONSTANTS
       BLES=BLESX
    77 CONTINUE
       JP=JLBDS-1
-      DO3 K=1,JP
-    3 READ(IREAD,102)GLAMD(K),MLD(K)
+      DO3 K=1,JP 
+   3   READ(IREAD,102)GLAMD(K),MLD(K)
       READ(IREAD,102)GLAMD(JLBDS)
       I=0
       DO2 K=1,JP
@@ -12798,6 +12888,7 @@ C atms,ions,spec ~ highest index of neutral atoms, ions, species total
      > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
       integer, dimension(75) :: idmarcspart, idggchempart
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,rhonallat(ndp,22),rhonallmol(ndp,543)
      >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
      >                ,idmarcspres(32),idggchempres(32)
@@ -13125,7 +13216,7 @@ C dyn/cm2 (and not presmo(17) alone).
          PHE = partp(K,17)
          P6_JON(K) = xmettryck(k,1)+0.42*PHE+0.85*ppallmol(k,1)
         
-        print *, "partp(k,17)", partp(k,17) 
+c        print *, "partp(k,17)", partp(k,17) 
 
 
 ! END OF EXOMOL MOLECULES WITH OS FILES (Rune D.K. 2019)
@@ -13155,8 +13246,8 @@ C dyn/cm2 (and not presmo(17) alone).
 ! ggchem and not from JON or THERMO).
         partpp(k,0) = ppallat(k,1)
         do m=1, 75
-         print *, "marcs id", idmarcspart(m)
-         print *, "gg part pp ", gg_partpp(k,idmarcspart(m)) 
+c         print *, "marcs id", idmarcspart(m)
+c         print *, "gg part pp ", gg_partpp(k,idmarcspart(m)) 
          partpp(k,idmarcspart(m)) =
      *   gg_partpp(k,idmarcspart(m))
         end do
@@ -19089,7 +19180,7 @@ C
 
           call NR(M_inc(:,i),V_inc(:,j),M_eff0,M_eff(i,j),n_inc)
 
-          x = 2.*3.141593*a(j)*1e8/wlos(i)      ! a: cm -> 
+          x = 2.*3.141593*a(j)*1e8/wlos(i)      ! a: cm -> ï¿½
           if(x .eq. 0.) then
             q_abs = 0.
             q_sca = 0.
@@ -19171,7 +19262,7 @@ C
         end do
         close(1)
         nlines = counter - 1
-        nkdata(1,:) = 10000.*nkdata(1,:)     ! micron > 
+        nkdata(1,:) = 10000.*nkdata(1,:)     ! micron > ï¿½
         
         do j=1,nwtot
           if(wlos(j) .lt. nkdata(1,1)) then
@@ -19210,7 +19301,7 @@ C
         end do
         close(1)
         nlines = counter - 1
-        nkdata(1,:) = 10000.*nkdata(1,:)     ! micron > 
+        nkdata(1,:) = 10000.*nkdata(1,:)     ! micron > ï¿½
         do j=1,nwtot
           if(wlos(j) .lt. nkdata(1,1)) then
             kdata(i,j) = nkdata(3,1)
@@ -19829,6 +19920,7 @@ C       call jon(tt(k),ppe(k),1,pgx,rox,dumx,0)
       jstan2 = nl(1)+1
       do k=1,ntau
         kl = k
+         
         call absko(1,1,tt(k),ppe(k),istan2,jstan2,abska,sprida)
       end do
       
@@ -19956,11 +20048,13 @@ c and total molecular pressure.
       integer, dimension(75) :: idmarcspart, idggchempart
       integer, dimension(32) :: idmarcspres, idggchempres
       real*8,intent(in) :: temp,pgas
+      real*8 :: pphsum
       character atnames*2, molnames*8, molnames2*4
       common /ggchemresults/
      > tgk,pgesk,ppelGG,ggmuk,ggrhok,ppsumk,ppappsumk,ppnonappsumk,
-     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
+     > ppat1sumk,ppat2sumk,ppmolsumk,ppgsk,rhon_total
       common /ggchempp/ppallat(ndp,22),ppallmol(ndp,543)
+     >                ,rhonallat(ndp,22),rhonallmol(ndp,543)
      >                ,gg_partpp(ndp,400)
      >                ,presmogg(33),ppat(22),ppmol(543)
      >                ,idmarcspres,idggchempres
@@ -19993,51 +20087,44 @@ c and total molecular pressure.
 
 
       call system('./GGchem/ggchem marcs2ggchem.in')
-      if(k.eq.1000) then 
-        open(unit=808,file='./marcs2gg_presmo.dat')
-           read(808,123) ((idmarcspres(m),idggchempres(m)), m=1, 32)
-123        format(i4,4x,i4)
-        close(808)
-        
-        open(unit=707,file='pp.dat')
-           read(707,*) (ppat(m),m=1,22)
-           read(707,*) (ppmol(m),m=1,543)
-        close(707)
 
-        do m=1, 32
-           presmogg(idmarcspres(m)) = ppmol(idggchempres(m))
-        enddo
-           presmogg(17) = ppat(2)
-      else
-        open(unit=990,file='GGchem_ppel')
+      open(unit=990,file='GGchem_ppel')
         read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ggrhodust,ppsumk
-     &     ,ppappsumk,ppnonappsumk,ppat1sumk,ppat2sumk,ppmolsumk,ppgsk
-        close(990)
-        open(unit=809, file='./marcs2gg_partpp.dat')
+     &     ,ppappsumk,ppnonappsumk,ppat1sumk,ppat2sumk,ppmolsumk,ppgsk,rhon_total
+      close(990)
+       
+      open(unit=809, file='./marcs2gg_partpp.dat')
              read(809,124) 
      * ((idmarcspart(m), idggchempart(m),molnames2(m)), m=1, 75)
 124          format(i4,3x,i3,4x,a4)
-        close(809)
+      close(809)
+
+        open(unit=321, file='ndensity.dat')
+            read(321,*) (rhonallat(k,m),m=1,22)
+            read(321,*) (rhonallmol(k,m), m=1,543)
+        close(321)
+
 
         open(unit=707,file='pp.dat')
               read(707,*) (ppallat(k,m),m=1,22)
               read(707,*) (ppallmol(k,m),m=1,543)
               if(k.eq.1) then
                 read(707,708) ((km,atnames(m)),m=1,22)
+                do m=1, 22
+                  print*, atnames(m)
+                end do
                 read(707,*)
                 read(707,709) (molnames(m),m=1,543)
-               end if
+
 708             format(i4,18x,a2)
 709             format(10a8)
+              end if
         close(707)
         do n =1,75
-              print *,"n", n
-              print *,"id in marcs ",  idmarcspart(n)
-              print *, "id in ggchem", idggchempart(n)
               gg_partpp(k,idmarcspart(n)) = ppallmol(k,idggchempart(n))
         enddo
-        
-      end if
+      
+      
       return
       end
         
@@ -20075,12 +20162,12 @@ C     STEFF:    Effective T of star in K
 C     R:        Distance from star to planet in AU
 C     RS:       Stellar radius in AU
 C
-C lægge ind i input-filen:
+C lï¿½gge ind i input-filen:
 
       RS=0.00465047
       RAU=1.00
       STEFF=5770
-      INSYN =1
+      INSYN =0
 
       THETA=0.
       MUIR=SIN((PI/2.)-THETA)       
@@ -20180,7 +20267,7 @@ C OWN COMMONS
       COMMON /CG/GRAV,KONSG /CTEFF/TEFF,FLUX
 C
 C
-C CALCULATE DETAILED ROSSELAND MEAN FOR IRRADIATION
+C CALCULATE DETAILED PLANCK MEAN FOR IRRADIATION
       DO 116 K=1,NTAU
         PLANCKIR(K)=1.0
         SUMWPIR(K)=0.
