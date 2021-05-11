@@ -4851,7 +4851,10 @@ C The neutral atoms:
         WRITE(7,2234)
 2234    FORMAT(//' P A R T I A L  P R E S S U R E S   ',
      &  ' of 15 selected neutral atoms of the 22 calculated in GGchem')
-        print*, (atnames(kpratoms(j)),j=1,15)
+        do j=1, 15
+            print*, kpratoms(j)
+            print*, atnames(kpratoms(j))
+        end do
         WRITE(7,3148) (atnames(kpratoms(j)),j=1,15)
         DO I=1,JTAU
                  WRITE(7,'(I2,15F8.3)')I,
@@ -20077,6 +20080,7 @@ c and total molecular pressure.
       write(70,'(a64)') '# abundance options 1=EarthCrust, 2=Ocean,
      & 3=Solar, 4=Meteorites'
       write(70,'(a34)') '3                     ! abund_pick'
+      write(70,'(a30)') '0                    ! verbose'
       write(70,'(a27)') '# equilibrium condensation?'
       write(70,'(a36)') '.false.               ! model_eqcond'   
       write(70,'(a42)') '0                     ! model_dim  (0,1,2)'
@@ -20086,7 +20090,7 @@ c and total molecular pressure.
       close(70)
 
 
-      call system('./GGchem/ggchem marcs2ggchem.in')
+      call system('./GGchem/ggchem marcs2ggchem.in > ggchem_out.txt')
 
       open(unit=990,file='GGchem_ppel')
         read(990,*) Tg,pges,ppelGG,ggmuk,ggrhok,ggrhodust,ppsumk
