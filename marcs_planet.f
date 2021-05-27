@@ -5838,6 +5838,8 @@ C MY POINTS  (warning: there are other variables with the same names xmy,h...)
 C                      
 C
       READ(5,51) MMY,NCORE,KDIFF,IRRIN,STEFF
+      print*, "after read"
+      print*, STEFF
       read(5, 1234) rstar,semimajor,insyn
       write(6,*)' MMY,NCORE,KDIFF,IRRIN,STEFF:'
       write(6,51) MMY,NCORE,KDIFF,IRRIN,STEFF
@@ -8720,7 +8722,8 @@ CUGJ FFR in excess     COMMON /CSPHER/DIFLOG,RADIUS,RR(NDP),NCORE,FFR(NDP)
 C OWN COMMONS
       COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
      &  ,dumtran(4*ndp),idumtran(3)
-      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
+     & E_P(NDP),EJ_P(NDP)
       COMMON /CANGLE/XMU(6),XMU2(6),H(6),MMU_PP
       COMMON /CSURF/HSURF,Y1(NRAYS)
       COMMON /ROSSC/ROSS(NDP),CROSS(NDP) /RHOC/RHO(NDP)
@@ -9000,6 +9003,12 @@ C FLUX TO PRINT
       spec(j,1) = wlos(j)
       spec(j,2) = hsurf
       spec(j,3) = fluxme(j)
+      do K=1, ntau
+            if(irrin.ge.1) CALL IRRAD(K,J)
+      end do
+      do k=0, ntau-1
+       if(irrin.ge.1) CALL PLANET_IRRAD(NTAU-K, J)
+      end do
 C
 C INITIATE MATRICES, TAU LOOP.
       DO 140 K=1,NTAU
@@ -9093,12 +9102,12 @@ C TEMPERATURE EQUATION
       IF (K.GT.MIHAL) GO TO 145
 C IRRADIATION is only computed if irrin>=1 in input file
 C      print*,'irrin = ',irrin
-      if(irrin.ge.1) CALL IRRAD(K,J)
+
 C RADIATIVE EQUILIBRIUM
       Y=-WLSTEP(J)*X(K)
       IF(K.GT.2) Y=Y*DB/(X(K)+S(K))
 !      RT(K)=RT(K)-Y*(XJ(K)-BPLAN(K))
-      RT(K)=RT(K)-Y*(XJ(K)+EJ(K) - 0.3*E(J)-BPLAN(K))
+      RT(K)=RT(K)-Y*(XJ(K)+EJ(K)+EJ_P(K)-BPLAN(K))
       TJ2(K)=Y
       TJ1(K)=0.
 C...      TTT(K,K)=TTT(K,K)+MAX(0.0D+0,-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))
@@ -20206,22 +20215,22 @@ C     RS:       Stellar radius in AU
       Rstar_au= rstar*Rsun_au
 
       THETA=0.
-      MUIR=SIN((PI/2.)-THETA)       
+      MUIR=SIN((PI/2.)-THETA)
 C
-      if (k<=1) then
-            TAUIR(K)=((XIR(K,J)+SIR(K,J))*PP(K)/GRAV)
-            if (insyn == 0) then
-             E(K)= BPL(STEFF,WLOS(J))*(Rstar_au/semimajor)**2/(4.*1.)
-            else 
-             E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
-            end if
-      EJ(K)=E(K)-E(K)*EXP(-((XIR(K+1,J)+SIR(K+1,J))*PP(K)/GRAV)/MUIR)
-      else
-            TAUIR(K)=(XIR(K,J)+SIR(K,J))*PP(K)/GRAV
-            E(K)=E(K-1)*EXP(-(TAUIR(K)-TAUIR(K-1))/MUIR)     
-            EJ(K)=E(K-1)-E(K)
+      IF(K.GT.1) GO TO 101
+      TAUIR(K)=((XIR(K,J)+SIR(K,J))*PP(K)/GRAV)
+      if(insyn.eq.0) then
+      E(K)= BPL(STEFF,WLOS(J))*(Rstar_au/semimajor)**2/(4.*1.)
+      else if(insyn.eq.1) then
+      E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
       end if
-
+      EJ(K)=E(K)-E(K)*EXP(-((XIR(K+1,J)+SIR(K+1,J))*PP(K)/GRAV)/MUIR)
+      GO TO 103
+101   CONTINUE
+      TAUIR(K)=(XIR(K,J)+SIR(K,J))*PP(K)/GRAV
+      E(K)=E(K-1)*EXP(-(TAUIR(K)-TAUIR(K-1))/MUIR)     
+      EJ(K)=E(K-1)-E(K)
+103   CONTINUE
       RETURN
       END
 
@@ -20329,5 +20338,65 @@ C
       END
 C
 
+      SUBROUTINE PLANET_IRRAD(K,J)
+      implicit real*8 (a-h,o-z)
+!--------------------------------------------
+C STATE VARIABLES
+      include 'parameter.inc'
+C DIMENSIONS
+      real*8 STBZ,IR,RS,R,TIR,E,THETA,MUIR
+      real*8 Rstar_au, Rsun_au
+      integer :: K 
+      dimension TAUIR_P(NDP)
+C COMMONS
+      COMMON /TAUC/TAU(NDP),DTAULN(NDP),JTAU
+      COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
+     &  ,dumtran(4*ndp),idumtran(3)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP), 
+     & E_P(NDP), EJ_P(NDP)
+      COMMON /CSTYR/MIHAL,NOCONV /DEBUG/KDEBUG
+      COMMON /CG/GRAV,KONSG /CTEFF/TEFF,FLUX
+      COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
+     * STEFAN
+      COMMON/COS/WNOS(NWL),CONOS(NDP,NWL),WLOS(NWL),WLSTEP(NWL)
+     *    ,KOS_STEP,NWTOT,NOSMOL,NEWOSATOM,NEWOSATOMLIST
+     *    ,nchrom,OSFIL(60),MOLNAME(60),SAMPLING
+      COMMON /CROSSIR/ROSSIR(NDP),ROSSPIR(NDP),SUMWIR(NDP),TAURIR(NDP)
+      COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
+     &     TAUPIR(NDP)
+      COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
+     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),stro(ndp),NTAU,ITER
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl)
+      common /cirinp/steff,irrin 
+      common /irradcs/rstar, semimajor, insyn   
+C
+C     STEFF:    Effective T of star in K
+C     R:        Distance from star to planet in AU
+C     RS:       Stellar radius in AU
 
+      Rsun_au=0.00465047
+      Rstar_au= rstar*Rsun_au
+
+      THETA=0.
+      MUIR=SIN((PI/2.)-THETA)
+
+      if (k==ntau) then
+       if (E(K) < 1e-33) then
+            EJ_P(K) = 0.0
+       else 
+            E_P(K)= E(k)
+            EJ_P(K) = -EJ(k)
+            !EJ_P(K)= E_P(K)*EXP(-(TAUIR(K-1)-TAUIR(K))/MUIR) - E_P(K)
+       end if
+      else
+       if (ABS(EJ_P(k+1)) < 1e-33) then 
+            EJ_P(k)=0.0
+       else
+        E_P(K)=E_P(K+1)*EXP(-(TAUIR(K+1)-TAUIR(K))/MUIR)     
+        EJ_P(K)=E_P(K)-E_P(K+1)
+       end if
+      end if
+      
+      RETURN
+      END
 
