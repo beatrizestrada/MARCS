@@ -9118,7 +9118,7 @@ C...     & *XT(K)/X(K))
 145   CONTINUE
 C FLUX CONSTANCY
       Y=8.*WLSTEP(J)/DA
-      RT(K)=RT(K)-Y*(XK(K)-XK(K-1))
+      RT(K)=RT(K)-Y*(XK(K)-XK(K-1)+EJ(K)+EJ_P(K))
       TJ1(K)=-FKA*Y
       TJ2(K)=FKB*Y
       TTT(K,K-1)=TTT(K,K-1)-Y*(XK(K)-XK(K-1))*(XT(K-1)+ST(K-1))/XSA
