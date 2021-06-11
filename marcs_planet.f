@@ -3813,7 +3813,7 @@ C
       DIMENSION TKORRM(NDP),FCORR(NDP),TAU(NDP),TAUS(NDP),
      *PE(NDP),PG(NDP),PRAD(NDP),PTURB(NDP),XKAPR(NDP),RO(NDP),
      *CP(NDP),CV(NDP),AGRAD(NDP),Q(NDP),U(NDP),V(NDP),ANCONV(NDP),
-     *PRESMO(33,NDP),FCONV(NDP),RR(NDP),Z(NDP),EMU(NDP),HNIC(NDP)
+     *PRESMO(33,NDP),FCONV(NDP),RR(NDP),EMU(NDP),HNIC(NDP)
      *,NJ(16),XLR(20),IEL(16),PROV(20,20),PALL(NDP)
      *,ABSKA(20),SPRIDA(20),XLB(500),PEP(16)
      *,ABNAME(30),SOURCE(30),ABSKTR(NDP),SPRTR(NDP)
@@ -3849,8 +3849,8 @@ C      COMMON/COPPRR/xconop(120,10),xlineop(120,10)    !100wn,10dpt
       COMMON /CNEWC3 /NEWC3
       COMMON /CG/GRAV,KONSG
       COMMON /CSTYR/MIHAL,NOCONV
-      common /cirinp/steff,irrin
-      common /irradcs/rstar, semimajor, insyn         !irrin=1~comp.irrad,steff=rad*
+      common /cirinp/steff,irrinp,irrin
+      common /irradcs/rstar, semimajor,tbottom, insyn        !irrin=1~comp.irrad,steff=rad*
       COMMON /CXMAX/XMAX /CTAUM/TAUM
       COMMON /MIXC/PALFA,PBETA,PNY,PY /CVFIX/VFIX                          
       COMMON /CPOLY/FACPLY,MOLTSUJI
@@ -3883,7 +3883,8 @@ C      COMMON/COPPRR/xconop(120,10),xlineop(120,10)    !100wn,10dpt
       character*5 name_mol, name_listmo
       COMMON /CMOLNAME/NAME_MOL(maxmol),NAME_LISTMO(maxmol)
       COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     &VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO_ST(NDP),NTAU,ITER
+     &VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO_ST(NDP),NTAU,ITER,
+     &Z(NDP)
       common /cgem/pres_gem(ndp,nspec)
       common /cgemnames/natms_gem,nions_gem,nspec_gem,name_gem(nspec)
 C atms,ions,spec ~ highest index of neutral atoms, ions, species total
@@ -5760,8 +5761,8 @@ C
       common /dpeset/ dpein,dtin
       common /cindiam/tdiam1,tdiam2,fdiam1,fdiam2,
      *    tc2h21,tc2h22,fc2h21,fc2h22
-      common /cirinp/steff,irrin
-      common /irradcs/rstar, semimajor, insyn      !irrin=1~comp.irrad,steff=rad*
+      common /cirinp/steff,irrinp,irrin
+      common /irradcs/rstar, semimajor,tbottom, insyn     !irrin=1~comp.irrad,steff=rad*
       DATA TSUN,GSUN,RSUN/5800.,4.44,7E10/
 
 C      print*,' in MAINB, vor schreiben nach mxms7.output'
@@ -5840,7 +5841,9 @@ C
       READ(5,51) MMY,NCORE,KDIFF,IRRIN,STEFF
       print*, "after read"
       print*, STEFF
-      read(5, 1234) rstar,semimajor,insyn
+      read(5, 1234) rstar,semimajor,insyn,irrinp,tbottom
+      print*, irrinp
+      print*, tbottom
       write(6,*)' MMY,NCORE,KDIFF,IRRIN,STEFF:'
       write(6,51) MMY,NCORE,KDIFF,IRRIN,STEFF
       write(7,519) MMY,NCORE,KDIFF,IRRIN,STEFF
@@ -5889,7 +5892,7 @@ C
       RETURN
 50    FORMAT(5(7X,F8.0))
 51    FORMAT(4(7X,I3,5X),7X,F8.0)
-1234  format(2(7X,F8.0), 7X, I1)
+1234  format(2(7X,F8.0), 2(7X, I6),8X,F8.0)
 52    FORMAT(20X,'LOG G  =',F10.2,10X,'LOG (ATM/R) =',F5.2,10X,
      & 'LOG (R/RSUN)=',F5.2)
 53    FORMAT(/20X,'PALFA  =',F10.2)
@@ -8750,8 +8753,8 @@ C SPACE ALLOCATION
       COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
      &     TAUPIR(NDP)
       COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl)
-      common /cirinp/steff,irrin
-      common /irradcs/rstar, semimajor, insyn         !irrin=1~comp.irrad,steff=rad*
+      common /cirinp/steff,irrinp,irrin
+      common /irradcs/rstar, semimajor,tbottom, insyn       !irrin=1~comp.irrad,steff=rad*
 C
 C DATA
       DATA IVERS,IEDIT/21,1/
@@ -9006,8 +9009,9 @@ C FLUX TO PRINT
       do K=1, ntau
             if(irrin.ge.1) CALL IRRAD(K,J)
       end do
-      do k=0, ntau-1
-       if(irrin.ge.1) CALL PLANET_IRRAD(NTAU-K, J)
+
+      do k=1, ntau
+       if(irrinp.ge.1) CALL PLANET_IRRAD(NTAU-K+1, J)
       end do
 C
 C INITIATE MATRICES, TAU LOOP.
@@ -9092,12 +9096,13 @@ C LOWER BOUNDARY
       XJ2(K)=-1.
       XJ3(K)=0.
       XJT1(K)=0.
-      XJT2(K)=DBPL(K)
+      !XJT2(K)=DIVBP(2000.0, WLOS(J))
+      XJT2(K)=DBPL(K) 
       XJPE1(K)=0.
       XJPE2(K)=0.
       XJPE3(K)=0.
 144   CONTINUE
-C
+C     
 C TEMPERATURE EQUATION
       IF (K.GT.MIHAL) GO TO 145
 C IRRADIATION is only computed if irrin>=1 in input file
@@ -9106,19 +9111,29 @@ C      print*,'irrin = ',irrin
 C RADIATIVE EQUILIBRIUM
       Y=-WLSTEP(J)*X(K)
       IF(K.GT.2) Y=Y*DB/(X(K)+S(K))
-!      RT(K)=RT(K)-Y*(XJ(K)-BPLAN(K))
+      if (K.EQ.NTAU) then
+            RT(K) = (RT(K) - (TT(K) - tbottom) - Y*(EJ(K)+EJ_P(K)))
+            TTT(K,K) = 1.0
+            TPE(K,K) = 1.0
+      else
+
       RT(K)=RT(K)-Y*(XJ(K)+EJ(K)+EJ_P(K)-BPLAN(K))
       TJ2(K)=Y
       TJ1(K)=0.
 C...      TTT(K,K)=TTT(K,K)+MAX(0.0D+0,-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))
 C...     & *XT(K)/X(K))
-      TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))*XT(K)/X(K)
-      TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))*XPE(K)/X(K)
+      TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))
+     & *XT(K)/X(K)
+      TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))
+     & *XPE(K)/X(K)
+      end if
+
       GO TO 146
 145   CONTINUE
 C FLUX CONSTANCY
+
       Y=8.*WLSTEP(J)/DA
-      RT(K)=RT(K)-Y*(XK(K)-XK(K-1)+EJ(K)+EJ_P(K))
+      RT(K)=RT(K)-Y*(XK(K)-XK(K-1))
       TJ1(K)=-FKA*Y
       TJ2(K)=FKB*Y
       TTT(K,K-1)=TTT(K,K-1)-Y*(XK(K)-XK(K-1))*(XT(K-1)+ST(K-1))/XSA
@@ -9127,6 +9142,7 @@ C FLUX CONSTANCY
       TPE(K,K)=TPE(K,K)-Y*(XK(K)-XK(K-1))*(XPE(K)+SPE(K))/XSA
 146   CONTINUE
 C
+
 C EQUATION OF RADIATION PRESSURE
       Y=PI4C*WLSTEP(J)
       RPR(K)=RPR(K)+Y*XK(K)
@@ -9700,6 +9716,7 @@ C                    call osatom
          ITSTOP=.TRUE.
 C        if(newosatom.eq.2 .and. tcormxend.gt.20.0*tconv) call osatom
       END IF
+      print*, "tcorm ", TCORMX
       PRINT406, TCORMXM,IT
 406   FORMAT(' Max corr. to T wanted was',F7.1,' K for iteration',I2)
 C
@@ -9716,6 +9733,7 @@ C CHECK T CORR
       DO 407 I=2,NTAU
       PM = T(I)/ABS(T(I))
  407  TCORMX=MAX(TCORMX,ABS(T(I)))
+      print*, "tcorm ", TCORMX
       PRINT4061, TCORMX
 4061  FORMAT(' Max corr. to T wanted for kort=1 was',F6.1)
       END IF
@@ -11493,6 +11511,7 @@ C---
       DO 405 I=2,NTAU
  405  TCORMX=MAX(TCORMX,ABS(T(I)))
       IF(TCORMX.LE. tconv)  ITSTOP=.TRUE.
+      print*, "tcorm ", TCORMX
       PRINT406, TCORMX,ITER
 406   FORMAT(' Max corr. to T wanted was',F6.1,' K for iteration',I2)
 C
@@ -11577,6 +11596,7 @@ C
       TCORMX=ABS(T(1))
       DO 414 I=2,NTAU
 414   TCORMX=MAX(TCORMX,ABS(T(I)))
+      print*, "tcorm ", TCORMX
       PRINT415, TCORMX,ITER
 415   FORMAT(' Max corr. applied to T was',F6.1,' K for iteration',I2)
 C
@@ -20202,10 +20222,11 @@ C COMMONS
       COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
      &     TAUPIR(NDP)
       COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),stro(ndp),NTAU,ITER
-      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl)
-      common /cirinp/steff,irrin 
-      common /irradcs/rstar, semimajor, insyn   
+     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(ndp),NTAU,ITER
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     *DTAUIR(NDP)
+      common /cirinp/steff,irrinp,irrin
+      common /irradcs/rstar, semimajor,tbottom, insyn 
 C
 C     STEFF:    Effective T of star in K
 C     R:        Distance from star to planet in AU
@@ -20218,19 +20239,34 @@ C     RS:       Stellar radius in AU
       MUIR=SIN((PI/2.)-THETA)
 C
       IF(K.GT.1) GO TO 101
-      TAUIR(K)=((XIR(K,J)+SIR(K,J))*PP(K)/GRAV)
+      TAUIR(K)= 0.0
       if(insyn.eq.0) then
       E(K)= BPL(STEFF,WLOS(J))*(Rstar_au/semimajor)**2/(4.*1.)
+      
       else if(insyn.eq.1) then
       E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
       end if
-      EJ(K)=E(K)-E(K)*EXP(-((XIR(K+1,J)+SIR(K+1,J))*PP(K)/GRAV)/MUIR)
+      !TAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K))
+      DTAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+      EJ(K)=E(K) - E(K)*EXP((-DTAUIR(K))/MUIR)
+      if (ABS(EJ(K)) < 1e-33) then 
+            EJ(k)=0.0
+      end if
       GO TO 103
 101   CONTINUE
-      TAUIR(K)=(XIR(K,J)+SIR(K,J))*PP(K)/GRAV
-      E(K)=E(K-1)*EXP(-(TAUIR(K)-TAUIR(K-1))/MUIR)     
-      EJ(K)=E(K-1)-E(K)
+      !TAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K))
+      DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+      if (ABS(EJ(K-1)) < 1e-10) then 
+            EJ(k)=0.0
+      else 
+            E(K)=E(K-1)*EXP((-DTAUIR(K))/MUIR)     
+            EJ(K)=E(K-1)-E(K)
+            if (ABS(EJ(K)) < 1e-10) then 
+                  EJ(k)=0.0
+            end if
+      end if
 103   CONTINUE
+
       RETURN
       END
 
@@ -20365,10 +20401,11 @@ C COMMONS
       COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
      &     TAUPIR(NDP)
       COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),stro(ndp),NTAU,ITER
-      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl)
-      common /cirinp/steff,irrin 
-      common /irradcs/rstar, semimajor, insyn   
+     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(NDP),NTAU,ITER
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     *DTAUP(NDP-1)
+      common /cirinp/steff,irrinp,irrin
+      common /irradcs/rstar, semimajor,tbottom, insyn   
 C
 C     STEFF:    Effective T of star in K
 C     R:        Distance from star to planet in AU
@@ -20381,22 +20418,23 @@ C     RS:       Stellar radius in AU
       MUIR=SIN((PI/2.)-THETA)
 
       if (k==ntau) then
-       if (E(K) < 1e-33) then
+       if (ABS(E(K)) < 1e-33) then
             EJ_P(K) = 0.0
        else 
-            E_P(K)= E(k)
-            EJ_P(K) = -EJ(k)
-            !EJ_P(K)= E_P(K)*EXP(-(TAUIR(K-1)-TAUIR(K))/MUIR) - E_P(K)
+            DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (-ZZ(K))
+            E_P(K) = E(K)
+            EJ_P(K)= E_P(K) - E_P(K)*EXP(-DTAUP(K)/MUIR)
        end if
       else
        if (ABS(EJ_P(k+1)) < 1e-33) then 
             EJ_P(k)=0.0
        else
-        E_P(K)=E_P(K+1)*EXP(-(TAUIR(K+1)-TAUIR(K))/MUIR)     
-        EJ_P(K)=E_P(K)-E_P(K+1)
+        DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K-1)-ZZ(K))
+        E_P(K)=E_P(K+1)*EXP(-DTAUP(K)/MUIR)     
+        EJ_P(K)= E_P(K+1) - E_P(K)
        end if
       end if
-      
+   
       RETURN
       END
 
