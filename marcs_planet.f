@@ -9010,8 +9010,12 @@ C FLUX TO PRINT
             if(irrin.ge.1) CALL IRRAD(K,J)
       end do
 
-      do k=1, ntau
-       if(irrinp.ge.1) CALL PLANET_IRRAD(NTAU-K+1, J)
+      do K=0, ntau-1
+       if(irrinp.ge.1) CALL PLANET_IRRAD(NTAU-K, J)
+      end do
+
+      do K=1, ntau
+            EJ(K) = EJ(K) + EJ_P(K)
       end do
 C
 C INITIATE MATRICES, TAU LOOP.
@@ -9097,7 +9101,8 @@ C LOWER BOUNDARY
       XJ3(K)=0.
       XJT1(K)=0.
       !XJT2(K)=DIVBP(2000.0, WLOS(J))
-      XJT2(K)=DBPL(K) 
+      XJT2(K)=DBPL(K)
+      !XJT2(K)=1.
       XJPE1(K)=0.
       XJPE2(K)=0.
       XJPE3(K)=0.
@@ -9105,41 +9110,36 @@ C LOWER BOUNDARY
 C     
 C TEMPERATURE EQUATION
       IF (K.GT.MIHAL) GO TO 145
-C IRRADIATION is only computed if irrin>=1 in input file
-C      print*,'irrin = ',irrin
 
 C RADIATIVE EQUILIBRIUM
       Y=-WLSTEP(J)*X(K)
       IF(K.GT.2) Y=Y*DB/(X(K)+S(K))
-      if (K.EQ.NTAU) then
-            RT(K) = (RT(K) - (TT(K) - tbottom) - Y*(EJ(K)+EJ_P(K)))
-            TTT(K,K) = 1.0
-            TPE(K,K) = 1.0
+      if(k.eq.ntau) then
+            RT(K)=-(TT(K)-tbottom)
+            TTT(K,K)=1.0
+            TPE(K,K)=1.0
       else
-
-      RT(K)=RT(K)-Y*(XJ(K)+EJ(K)+EJ_P(K)-BPLAN(K))
+      RT(K)=RT(K)-Y*(XJ(K)+EJ(K)-BPLAN(K))
       TJ2(K)=Y
       TJ1(K)=0.
-C...      TTT(K,K)=TTT(K,K)+MAX(0.0D+0,-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))
-C...     & *XT(K)/X(K))
-      TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))
-     & *XT(K)/X(K)
-      TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))
-     & *XPE(K)/X(K)
-      end if
-
+      TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))*XT(K)/X(K)
+      TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))*XPE(K)/X(K)  
+      end if   
       GO TO 146
 145   CONTINUE
 C FLUX CONSTANCY
-
+      !RT(K) = RT(K) - (TT(K)-tbottom)
+      !TTT(K,K) = 1.0
+      !TPE(K,K) = 1.0
       Y=8.*WLSTEP(J)/DA
-      RT(K)=RT(K)-Y*(XK(K)-XK(K-1))
+      RT(K)=RT(K)-Y*(XK(K)-XK(K-1)) - (TT(K)-tbottom) 
       TJ1(K)=-FKA*Y
       TJ2(K)=FKB*Y
       TTT(K,K-1)=TTT(K,K-1)-Y*(XK(K)-XK(K-1))*(XT(K-1)+ST(K-1))/XSA
       TTT(K,K)=TTT(K,K)-Y*(XK(K)-XK(K-1))*(XT(K)+ST(K))/XSA
       TPE(K,K-1)=TPE(K,K-1)-Y*(XK(K)-XK(K-1))*(XPE(K-1)+SPE(K-1))/XSA
       TPE(K,K)=TPE(K,K)-Y*(XK(K)-XK(K-1))*(XPE(K)+SPE(K))/XSA
+
 146   CONTINUE
 C
 
@@ -9455,6 +9455,7 @@ C TEMPERATURE
 CC    TTT IS ALREADY INITIATED
       IF(K.GT.MIHAL) GO TO 261
 C STR"MGREN CONDITION
+      !print*, "i am here"
       RT(K)=RT(K)+(FFC(K+1)-FFC(K))
       GO TO 262
 261   CONTINUE
@@ -11296,6 +11297,7 @@ C TEMPERATURE
 CC    TTT IS ALREADY INITIATED
       IF(K.GT.MIHAL) GO TO 261
 C STR"MGREN CONDITION
+      !print*, "i am here"
       RT(K)=RT(K)+(FFC(K+1)-FFC(K))
       GO TO 262
 261   CONTINUE
@@ -20238,6 +20240,7 @@ C     RS:       Stellar radius in AU
       THETA=0.
       MUIR=SIN((PI/2.)-THETA)
 C
+
       IF(K.GT.1) GO TO 101
       TAUIR(K)= 0.0
       if(insyn.eq.0) then
@@ -20254,6 +20257,9 @@ C
       end if
       GO TO 103
 101   CONTINUE
+      if (K==NTAU) then
+            EJ(K) = 0.0
+      else
       !TAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K))
       DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
       if (ABS(EJ(K-1)) < 1e-10) then 
@@ -20264,6 +20270,7 @@ C
             if (ABS(EJ(K)) < 1e-10) then 
                   EJ(k)=0.0
             end if
+      end if
       end if
 103   CONTINUE
 
@@ -20417,23 +20424,27 @@ C     RS:       Stellar radius in AU
       THETA=0.
       MUIR=SIN((PI/2.)-THETA)
 
-      if (k==ntau) then
+      if (K==NTAU) then
+            EJ_P(K) = 0.0
+      else if (k==NTAU-1) then
        if (ABS(E(K)) < 1e-33) then
             EJ_P(K) = 0.0
        else 
-            DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (-ZZ(K))
-            E_P(K) = E(K)
+            DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+            E_P(K) = 0.07*E(K)
+            !EJ_P(K) = 0.07*EJ(K)
             EJ_P(K)= E_P(K) - E_P(K)*EXP(-DTAUP(K)/MUIR)
        end if
       else
        if (ABS(EJ_P(k+1)) < 1e-33) then 
-            EJ_P(k)=0.0
+            EJ_P(K)=0.0
        else
-        DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K-1)-ZZ(K))
+        DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
         E_P(K)=E_P(K+1)*EXP(-DTAUP(K)/MUIR)     
         EJ_P(K)= E_P(K+1) - E_P(K)
-       end if
+        end if
       end if
+      
    
       RETURN
       END
