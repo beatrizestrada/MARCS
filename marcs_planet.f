@@ -3849,7 +3849,7 @@ C      COMMON/COPPRR/xconop(120,10),xlineop(120,10)    !100wn,10dpt
       COMMON /CNEWC3 /NEWC3
       COMMON /CG/GRAV,KONSG
       COMMON /CSTYR/MIHAL,NOCONV
-      common /cirinp/steff,irrinp,irrin
+      common /cirinp/steff,reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn        !irrin=1~comp.irrad,steff=rad*
       COMMON /CXMAX/XMAX /CTAUM/TAUM
       COMMON /MIXC/PALFA,PBETA,PNY,PY /CVFIX/VFIX                          
@@ -5761,7 +5761,7 @@ C
       common /dpeset/ dpein,dtin
       common /cindiam/tdiam1,tdiam2,fdiam1,fdiam2,
      *    tc2h21,tc2h22,fc2h21,fc2h22
-      common /cirinp/steff,irrinp,irrin
+      common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn     !irrin=1~comp.irrad,steff=rad*
       DATA TSUN,GSUN,RSUN/5800.,4.44,7E10/
 
@@ -5841,9 +5841,10 @@ C
       READ(5,51) MMY,NCORE,KDIFF,IRRIN,STEFF
       print*, "after read"
       print*, STEFF
-      read(5, 1234) rstar,semimajor,insyn,irrinp,tbottom
+      read(5, 1234) rstar,semimajor,insyn,irrinp,tbottom,reflect
       print*, irrinp
       print*, tbottom
+      print*, reflect
       write(6,*)' MMY,NCORE,KDIFF,IRRIN,STEFF:'
       write(6,51) MMY,NCORE,KDIFF,IRRIN,STEFF
       write(7,519) MMY,NCORE,KDIFF,IRRIN,STEFF
@@ -5892,7 +5893,7 @@ C
       RETURN
 50    FORMAT(5(7X,F8.0))
 51    FORMAT(4(7X,I3,5X),7X,F8.0)
-1234  format(2(7X,F8.0), 2(7X, I6),8X,F8.0)
+1234  format(2(7X,F8.0), 2(7X, I6),8X,F6.0, 13X, F4.0)
 52    FORMAT(20X,'LOG G  =',F10.2,10X,'LOG (ATM/R) =',F5.2,10X,
      & 'LOG (R/RSUN)=',F5.2)
 53    FORMAT(/20X,'PALFA  =',F10.2)
@@ -8753,7 +8754,7 @@ C SPACE ALLOCATION
       COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
      &     TAUPIR(NDP)
       COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl)
-      common /cirinp/steff,irrinp,irrin
+      common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn       !irrin=1~comp.irrad,steff=rad*
 C
 C DATA
@@ -20227,7 +20228,7 @@ C COMMONS
      *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(ndp),NTAU,ITER
       COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
      *DTAUIR(NDP)
-      common /cirinp/steff,irrinp,irrin
+      common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn 
 C
 C     STEFF:    Effective T of star in K
@@ -20411,7 +20412,7 @@ C COMMONS
      *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(NDP),NTAU,ITER
       COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
      *DTAUP(NDP-1)
-      common /cirinp/steff,irrinp,irrin
+      common /cirinp/steff,reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn   
 C
 C     STEFF:    Effective T of star in K
@@ -20431,7 +20432,7 @@ C     RS:       Stellar radius in AU
             EJ_P(K) = 0.0
        else 
             DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
-            E_P(K) = 0.07*E(K)
+            E_P(K) = reflect*E(K)
             !EJ_P(K) = 0.07*EJ(K)
             EJ_P(K)= E_P(K) - E_P(K)*EXP(-DTAUP(K)/MUIR)
        end if
