@@ -1,5 +1,5 @@
 # MARCS
-
+# Git repo to upload MARCS 
 #To run MARCS w/ ggchem
 #call executable runmarcs1
 #call input file mxms7a.input
@@ -10,3 +10,4 @@
 #to run marcs:
 #./runmarcs1 >&output.out&
 #all terminal messages go on output.out
+

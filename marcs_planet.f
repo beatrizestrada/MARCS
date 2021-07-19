@@ -10639,7 +10639,7 @@ C KEEP THEM SMALL, TO STAY ON THE LINEAR PART.
 C      DTX=0.001
 C      DPEX=0.001
       DTX=dtin
-      DPEX=dprin
+      DPEX=dpein
       DO 111 K=1,NTAU
         T(K)=TT(K)*DTX
         PE(K)=PPE(K)*DPEX
