@@ -8693,7 +8693,7 @@ C DIMENSIONS
      *,RPR(NDP),RP(NDP),RD(NDP),RV(NDP),RFC(NDP),RPE(NDP),RT(NDP)
      *,TAUTAU(NDP) 
       LOGICAL NEWV
-      real*8 a,b,c,aa,bb,cc,aaa,ccc,STBZ,IR,RS,R,TIR, test_var
+      real*8 a,b,c,aa,bb,cc,aaa,ccc,STBZ,IR,RS,R,TIR
       character*24 idmodl
 C
 C CONNECTIONS VIA COMMON.
@@ -10480,7 +10480,7 @@ C
 C
 C STATE VARIABLES
       COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     & VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(NDP),NTAU,ITER
+     & VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),ROSTATEC(NDP),NTAU,ITER
       common /ckdtpe/dpex,kdtpe
       common /dpeset/ dpein,dtin
 
