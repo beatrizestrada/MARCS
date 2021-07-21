@@ -8753,7 +8753,8 @@ C SPACE ALLOCATION
       COMMON /CROSSIR/ROSSIR(NDP),ROSSPIR(NDP),SUMWIR(NDP),TAURIR(NDP)
       COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
      &     TAUPIR(NDP)
-      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl)
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     * DTAUIR(NDP), DTAUPLANET(NDP), DTAUP(NDP)
       common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn       !irrin=1~comp.irrad,steff=rad*
 C
@@ -9013,7 +9014,7 @@ C FLUX TO PRINT
 
       do K=0, ntau-1
        if(irrinp.ge.1) CALL REFLECTED_IRRAD(NTAU-K, J)
-       !if(irrinp.ge.1) CALL IRRAD_P(NTAU-K, J)
+       if(irrinp.ge.1) CALL IRRAD_P(NTAU-K, J)
       end do
 
       do K=1, ntau
@@ -9119,8 +9120,8 @@ C RADIATIVE EQUILIBRIUM
       Y=-WLSTEP(J)*X(K)
       IF(K.GT.2) Y=Y*DB/(X(K)+S(K))
       if(k.eq.ntau) then
-            RT(K)=-(TT(K)-tbottom)
-            !RT(K)= -(TT(K)+Y*EJ(K))
+            !RT(K)=-(TT(K)-tbottom)
+            RT(K)= -(TT(K)+Y*EJ(K))
             TTT(K,K)=1.0
             TPE(K,K)=1.0
       else
@@ -10479,7 +10480,7 @@ C
 C
 C STATE VARIABLES
       COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     &VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),ROSTAT(NDP),NTAU,ITER
+     & VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(NDP),NTAU,ITER
       common /ckdtpe/dpex,kdtpe
       common /dpeset/ dpein,dtin
 
@@ -20213,13 +20214,17 @@ C DIMENSIONS
       real*8 Rstar_au, Rsun_au
       integer :: K 
 C COMMONS
-      COMMON /CTRAN2/EJ(NDP),E(NDP)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
+     & E_P(NDP),EJ_P(NDP), EJ_PLANET(NDP), E_PLANET(NDP)
       COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
      * STEFAN
-      COMMON/COS/WLOS(NWL)
-      COMMON /STATEC/ZZ(NDP),RO(ndp),NTAU
-      COMMON /CIR/XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
-     * DTAUIR(NDP)
+      common/cos/wnos(nwl),conos(ndp,nwl),wlos(nwl),wlstep(nwl),
+     *  kos_step,nwtot,nosmol,newosatom,newosatomlist,
+     *  nchrom,osfil(60),molname(60),sampling
+      common /statec/ppr(ndp),ppt(ndp),pp(ndp),gg(ndp),zz(ndp),dd(ndp),
+     & vv(ndp),ffc(ndp),ppe(ndp),tt(ndp),tauln(ndp),ro(ndp),ntau,iter
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     * DTAUIR(NDP), DTAUPLANET(NDP), DTAUP(NDP)
       common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn 
 C
@@ -20235,8 +20240,6 @@ C     RS:       Stellar radius in AU
 C
 
       IF(K.GT.1) GO TO 101
-      TAUIR(K)= 0.0
-
       if(insyn.eq.0) then
         E(K)= BPL(STEFF,WLOS(J))*(Rstar_au/semimajor)**2/(4.*1.)
       
@@ -20284,13 +20287,17 @@ C DIMENSIONS
        real*8 Rstar_au, Rsun_au
        integer :: K 
 C COMMONS
-       COMMON /CTRAN2/EJ_PLANET(NDP), E_PLANET(NDP)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
+     & E_P(NDP),EJ_P(NDP), EJ_PLANET(NDP), E_PLANET(NDP)
        COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
      * STEFAN
-       COMMON/COS/WLOS(NWL)
-       COMMON /STATEC/ZZ(NDP),RO(ndp),NTAU
-       COMMON /CIR/XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
-     *DTAUPLANET(NDP)
+      common/cos/wnos(nwl),conos(ndp,nwl),wlos(nwl),wlstep(nwl),
+     *  kos_step,nwtot,nosmol,newosatom,newosatomlist,
+     *  nchrom,osfil(60),molname(60),sampling
+       common /statec/ppr(ndp),ppt(ndp),pp(ndp),gg(ndp),zz(ndp),dd(ndp),
+     & vv(ndp),ffc(ndp),ppe(ndp),tt(ndp),tauln(ndp),ro(ndp),ntau,iter
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     * DTAUIR(NDP), DTAUPLANET(NDP), DTAUP(NDP)
        common /cirinp/steff, reflect,irrinp,irrin
        common /irradcs/rstar, semimajor,tbottom, insyn 
 C
@@ -20330,12 +20337,13 @@ C DIMENSIONS
       real*8 STEFF, YAIR
       integer :: J, K
 C COMMONS
-      COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),stro(ndp),NTAU,ITER
+      common /statec/ppr(ndp),ppt(ndp),pp(ndp),gg(ndp),zz(ndp),dd(ndp),
+     & vv(ndp),ffc(ndp),ppe(ndp),tt(ndp),tauln(ndp),ro(ndp),ntau,iter
 C OWN COMMONS
       COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
      &  ,dumtran(4*ndp),idumtran(3)
-      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
+     & E_P(NDP),EJ_P(NDP), EJ_PLANET(NDP), E_PLANET(NDP)
       COMMON /CROSSIR/ROSSIR(NDP),ROSSPIR(NDP),SUMWIR(NDP),TAURIR(NDP)
       COMMON/COS/WNOS(NWL),CONOS(NDP,NWL),WLOS(NWL),WLSTEP(NWL)
      *    ,KOS_STEP,NWTOT,NOSMOL,NEWOSATOM,NEWOSATOMLIST
@@ -20380,12 +20388,13 @@ C DIMENSIONS
       real*8 STEFF, YAIR
       integer :: J, K
 C COMMONS
-      COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),stro(ndp),NTAU,ITER
+      common /statec/ppr(ndp),ppt(ndp),pp(ndp),gg(ndp),zz(ndp),dd(ndp),
+     & vv(ndp),ffc(ndp),ppe(ndp),tt(ndp),tauln(ndp),ro(ndp),ntau,iter
 C OWN COMMONS
       COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
      &  ,dumtran(4*ndp),idumtran(3)
-      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
+     & E_P(NDP),EJ_P(NDP), EJ_PLANET(NDP), E_PLANET(NDP)
       COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
      &     TAUPIR(NDP)
       COMMON/COS/WNOS(NWL),CONOS(NDP,NWL),WLOS(NWL),WLSTEP(NWL)
@@ -20433,12 +20442,17 @@ C DIMENSIONS
       integer :: K 
       dimension TAUIR_P(NDP)
 C COMMONS
-      COMMON /CTRAN2/EJ(NDP),E(NDP),E_P(NDP), EJ_P(NDP)
+      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
+     & E_P(NDP),EJ_P(NDP), EJ_PLANET(NDP), E_PLANET(NDP)
       COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
      * STEFAN
-      COMMON/COS/WLOS(NWL)
-      COMMON /STATEC/ZZ(NDP),RO(NDP),NTAU
-      COMMON /CIR/XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),DTAUP(NDP)
+      common/cos/wnos(nwl),conos(ndp,nwl),wlos(nwl),wlstep(nwl),
+     *  kos_step,nwtot,nosmol,newosatom,newosatomlist,
+     *  nchrom,osfil(60),molname(60),sampling
+      common /statec/ppr(ndp),ppt(ndp),pp(ndp),gg(ndp),zz(ndp),dd(ndp),
+     & vv(ndp),ffc(ndp),ppe(ndp),tt(ndp),tauln(ndp),ro(ndp),ntau,iter
+      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     * DTAUIR(NDP), DTAUPLANET(NDP), DTAUP(NDP)
       common /cirinp/steff,reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn   
 C
