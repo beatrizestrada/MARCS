@@ -8693,7 +8693,7 @@ C DIMENSIONS
      *,RPR(NDP),RP(NDP),RD(NDP),RV(NDP),RFC(NDP),RPE(NDP),RT(NDP)
      *,TAUTAU(NDP) 
       LOGICAL NEWV
-      real*8 a,b,c,aa,bb,cc,aaa,ccc,STBZ,IR,RS,R,TIR
+      real*8 a,b,c,aa,bb,cc,aaa,ccc,STBZ,IR,RS,R,TIR, test_var
       character*24 idmodl
 C
 C CONNECTIONS VIA COMMON.
@@ -8727,7 +8727,7 @@ C OWN COMMONS
       COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
      &  ,dumtran(4*ndp),idumtran(3)
       COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP),
-     & E_P(NDP),EJ_P(NDP)
+     & E_P(NDP),EJ_P(NDP), EJ_PLANET(NDP), E_PLANET(NDP)
       COMMON /CANGLE/XMU(6),XMU2(6),H(6),MMU_PP
       COMMON /CSURF/HSURF,Y1(NRAYS)
       COMMON /ROSSC/ROSS(NDP),CROSS(NDP) /RHOC/RHO(NDP)
@@ -9012,11 +9012,12 @@ C FLUX TO PRINT
       end do
 
       do K=0, ntau-1
-       if(irrinp.ge.1) CALL PLANET_IRRAD(NTAU-K, J)
+       if(irrinp.ge.1) CALL REFLECTED_IRRAD(NTAU-K, J)
+       !if(irrinp.ge.1) CALL IRRAD_P(NTAU-K, J)
       end do
 
       do K=1, ntau
-            EJ(K) = EJ(K) + EJ_P(K)
+            EJ(K) = EJ(K) + EJ_P(K) + EJ_PLANET(K)
       end do
 C
 C INITIATE MATRICES, TAU LOOP.
@@ -9101,9 +9102,11 @@ C LOWER BOUNDARY
       XJ2(K)=-1.
       XJ3(K)=0.
       XJT1(K)=0.
-      !XJT2(K)=DIVBP(2000.0, WLOS(J))
-      XJT2(K)=DBPL(K)
+      !test_var = BPL(tbottom,wlos(j)) 
+      !XJT2(K)=DIVBP(tbottom, WLOS(J))
+      !XJT2(K)=DIVBP(tbottom, WLOS(J))
       !XJT2(K)=1.
+      XJT2(K)=DBPL(K)
       XJPE1(K)=0.
       XJPE2(K)=0.
       XJPE3(K)=0.
@@ -9117,6 +9120,7 @@ C RADIATIVE EQUILIBRIUM
       IF(K.GT.2) Y=Y*DB/(X(K)+S(K))
       if(k.eq.ntau) then
             RT(K)=-(TT(K)-tbottom)
+            !RT(K)= -(TT(K)+Y*EJ(K))
             TTT(K,K)=1.0
             TPE(K,K)=1.0
       else
@@ -9129,11 +9133,9 @@ C RADIATIVE EQUILIBRIUM
       GO TO 146
 145   CONTINUE
 C FLUX CONSTANCY
-      !RT(K) = RT(K) - (TT(K)-tbottom)
-      !TTT(K,K) = 1.0
-      !TPE(K,K) = 1.0
+
       Y=8.*WLSTEP(J)/DA
-      RT(K)=RT(K)-Y*(XK(K)-XK(K-1)) - (TT(K)-tbottom) 
+      RT(K)=RT(K)-Y*(XK(K)-XK(K-1))
       TJ1(K)=-FKA*Y
       TJ2(K)=FKB*Y
       TTT(K,K-1)=TTT(K,K-1)-Y*(XK(K)-XK(K-1))*(XT(K-1)+ST(K-1))/XSA
@@ -20199,35 +20201,25 @@ c and total molecular pressure.
       end
         
 C---------------------------------------------
-!
+!!Subroutine IRRAD obtains the change in energy (EJ(k)) from stellar irradiation
+!!at a given atmospheric layer (k) and wavelength (j).
       SUBROUTINE IRRAD(K,J)
       implicit real*8 (a-h,o-z)
 !--------------------------------------------
 C STATE VARIABLES
       include 'parameter.inc'
 C DIMENSIONS
-      real*8 STBZ,IR,RS,R,TIR,E,THETA,MUIR
+      real*8 THETA,MUIR
       real*8 Rstar_au, Rsun_au
       integer :: K 
 C COMMONS
-      COMMON /TAUC/TAU(NDP),DTAULN(NDP),JTAU
-      COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
-     &  ,dumtran(4*ndp),idumtran(3)
-      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP)
-      COMMON /CSTYR/MIHAL,NOCONV /DEBUG/KDEBUG
-      COMMON /CG/GRAV,KONSG /CTEFF/TEFF,FLUX
+      COMMON /CTRAN2/EJ(NDP),E(NDP)
       COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
      * STEFAN
-      COMMON/COS/WNOS(NWL),CONOS(NDP,NWL),WLOS(NWL),WLSTEP(NWL)
-     *    ,KOS_STEP,NWTOT,NOSMOL,NEWOSATOM,NEWOSATOMLIST
-     *    ,nchrom,OSFIL(60),MOLNAME(60),SAMPLING
-      COMMON /CROSSIR/ROSSIR(NDP),ROSSPIR(NDP),SUMWIR(NDP),TAURIR(NDP)
-      COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
-     &     TAUPIR(NDP)
-      COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(ndp),NTAU,ITER
-      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
-     *DTAUIR(NDP)
+      COMMON/COS/WLOS(NWL)
+      COMMON /STATEC/ZZ(NDP),RO(ndp),NTAU
+      COMMON /CIR/XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     * DTAUIR(NDP)
       common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn 
 C
@@ -20244,31 +20236,33 @@ C
 
       IF(K.GT.1) GO TO 101
       TAUIR(K)= 0.0
+
       if(insyn.eq.0) then
-      E(K)= BPL(STEFF,WLOS(J))*(Rstar_au/semimajor)**2/(4.*1.)
+        E(K)= BPL(STEFF,WLOS(J))*(Rstar_au/semimajor)**2/(4.*1.)
       
       else if(insyn.eq.1) then
-      E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
+        E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
       end if
-      !TAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K))
+
       DTAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
       EJ(K)=E(K) - E(K)*EXP((-DTAUIR(K))/MUIR)
+
       if (ABS(EJ(K)) < 1e-33) then 
             EJ(k)=0.0
       end if
+
       GO TO 103
 101   CONTINUE
       if (K==NTAU) then
-            EJ(K) = 0.0
+            EJ(K) = EJ(K-1)
       else
-      !TAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K))
       DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
-      if (ABS(EJ(K-1)) < 1e-10) then 
+      if (ABS(EJ(K-1)) < 1e-33) then 
             EJ(k)=0.0
       else 
             E(K)=E(K-1)*EXP((-DTAUIR(K))/MUIR)     
             EJ(K)=E(K-1)-E(K)
-            if (ABS(EJ(K)) < 1e-10) then 
+            if (ABS(EJ(K)) < 1e-33) then 
                   EJ(k)=0.0
             end if
       end if
@@ -20278,7 +20272,51 @@ C
       RETURN
       END
 
-
+!!Subroutine IRRAD_P obtains the change in energy (EJ_PLANET(k)) from the planet's surface
+!!radiation at a given atmospheric layer (k) and wavelength (j).      
+      SUBROUTINE IRRAD_P(K,J)
+      implicit real*8 (a-h,o-z)
+      !--------------------------------------------
+C STATE VARIABLES
+       include 'parameter.inc'
+C DIMENSIONS
+       real*8 THETA,MUIR
+       real*8 Rstar_au, Rsun_au
+       integer :: K 
+C COMMONS
+       COMMON /CTRAN2/EJ_PLANET(NDP), E_PLANET(NDP)
+       COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
+     * STEFAN
+       COMMON/COS/WLOS(NWL)
+       COMMON /STATEC/ZZ(NDP),RO(ndp),NTAU
+       COMMON /CIR/XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
+     *DTAUPLANET(NDP)
+       common /cirinp/steff, reflect,irrinp,irrin
+       common /irradcs/rstar, semimajor,tbottom, insyn 
+C
+C     STEFF:    Effective T of star in K
+C     R:        Distance from star to planet in AU
+C     RS:       Stellar radius in AU
+      
+      Rsun_au=0.00465047
+      Rstar_au= rstar*Rsun_au
+      
+      THETA=0.
+      MUIR=SIN((PI/2.)-THETA)
+      
+      if (K==NTAU) then
+        EJ_PLANET(K) = BPL(tbottom,WLOS(J))
+      else if (k==NTAU-1) then
+        E_PLANET(K)= BPL(tbottom,WLOS(J))
+        DTAUPLANET(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+        EJ_PLANET(K)= E_PLANET(K) - E_PLANET(K)*EXP(-DTAUPLANET(K)/MUIR)
+      else
+        DTAUPLANET(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+        E_PLANET(K)=E_PLANET(K+1)*EXP(-DTAUPLANET(K)/MUIR)     
+        EJ_PLANET(K)= E_PLANET(K+1) - E_PLANET(K)       
+      end if
+      RETURN
+      END
 
 C--------------------------------------------
 !
@@ -20382,36 +20420,25 @@ C
       END
 C
 
-      SUBROUTINE PLANET_IRRAD(K,J)
+!!Subroutine REFLECTED_IRRAD obtains the change in energy (EJ_P(k)) from the planet's surface
+!!reflected radiation at a given atmospheric layer (k) and wavelength (j). 
+      SUBROUTINE REFLECTED_IRRAD(K,J)
       implicit real*8 (a-h,o-z)
 !--------------------------------------------
 C STATE VARIABLES
       include 'parameter.inc'
 C DIMENSIONS
-      real*8 STBZ,IR,RS,R,TIR,E,THETA,MUIR
+      real*8 THETA,MUIR
       real*8 Rstar_au, Rsun_au
       integer :: K 
       dimension TAUIR_P(NDP)
 C COMMONS
-      COMMON /TAUC/TAU(NDP),DTAULN(NDP),JTAU
-      COMMON /CTRAN/X(NDP),S(NDP),BPLAN(NDP),XJ(NDP),HFLUX(NDP),XK(NDP)
-     &  ,dumtran(4*ndp),idumtran(3)
-      COMMON /CTRAN2/EJ(NDP),TOTEJ(NDP),TOTIR(NDP),E(NDP),TOTE(NDP), 
-     & E_P(NDP), EJ_P(NDP)
-      COMMON /CSTYR/MIHAL,NOCONV /DEBUG/KDEBUG
-      COMMON /CG/GRAV,KONSG /CTEFF/TEFF,FLUX
+      COMMON /CTRAN2/EJ(NDP),E(NDP),E_P(NDP), EJ_P(NDP)
       COMMON /NATURE/BOLTZK,CLIGHT,ECHARG,HPLNCK,PI,PI4C,RYDBRG,
      * STEFAN
-      COMMON/COS/WNOS(NWL),CONOS(NDP,NWL),WLOS(NWL),WLSTEP(NWL)
-     *    ,KOS_STEP,NWTOT,NOSMOL,NEWOSATOM,NEWOSATOMLIST
-     *    ,nchrom,OSFIL(60),MOLNAME(60),SAMPLING
-      COMMON /CROSSIR/ROSSIR(NDP),ROSSPIR(NDP),SUMWIR(NDP),TAURIR(NDP)
-      COMMON /CPLANCKIR/PLANCKIR(NDP),PLANCKPIR(NDP),SUMWPIR(NDP),
-     &     TAUPIR(NDP)
-      COMMON /STATEC/PPR(NDP),PPT(NDP),PP(NDP),GG(NDP),ZZ(NDP),DD(NDP),
-     *VV(NDP),FFC(NDP),PPE(NDP),TT(NDP),TAULN(NDP),RO(NDP),NTAU,ITER
-      COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
-     *DTAUP(NDP-1)
+      COMMON/COS/WLOS(NWL)
+      COMMON /STATEC/ZZ(NDP),RO(NDP),NTAU
+      COMMON /CIR/XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),DTAUP(NDP)
       common /cirinp/steff,reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn   
 C
@@ -20426,27 +20453,25 @@ C     RS:       Stellar radius in AU
       MUIR=SIN((PI/2.)-THETA)
 
       if (K==NTAU) then
-            EJ_P(K) = 0.0
+            EJ_P(K) = reflect*EJ(K)
       else if (k==NTAU-1) then
-       if (ABS(E(K)) < 1e-33) then
+        if (ABS(E(K)) < 1e-33) then
             EJ_P(K) = 0.0
-       else 
+        else 
             DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
             E_P(K) = reflect*E(K)
-            !EJ_P(K) = 0.07*EJ(K)
             EJ_P(K)= E_P(K) - E_P(K)*EXP(-DTAUP(K)/MUIR)
-       end if
+        end if
       else
        if (ABS(EJ_P(k+1)) < 1e-33) then 
             EJ_P(K)=0.0
        else
-        DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
-        E_P(K)=E_P(K+1)*EXP(-DTAUP(K)/MUIR)     
-        EJ_P(K)= E_P(K+1) - E_P(K)
-        end if
+          DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+          E_P(K)=E_P(K+1)*EXP(-DTAUP(K)/MUIR)     
+          EJ_P(K)= E_P(K+1) - E_P(K)
+       end if
       end if
       
-   
       RETURN
       END
 

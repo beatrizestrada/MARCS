@@ -1,19 +1,20 @@
-ITEMAX=50      NPRINT=  0     NEWMOD=  0     NOARCH=  0     JONTYP=3       IDUST =0
+ITEMAX=40      NPRINT=  0     NEWMOD=  0     NOARCH=  0     JONTYP=3       IDUST =0
 JUMP  =  4     OS/ODF=OS      MOLOLD=  1     NLTE  =  0     PP/SPH=PP
-TEFF  =1500.0  GRAV  =4.5     MODEL =                        M/MSN=0.1
-NOCONV= 35     XMAX  =1.0E+08 TAUM  =300.0   FACPLY=1.0     METBL =  0
+TEFF  =1000.0  GRAV  =4.5     MODEL =                        M/MSN=0.1
+NOCONV= 43     XMAX  =1.0E+08 TAUM  =300.0   FACPLY=1.0     METBL =  0
 ILINE =  1     AMLOSS=1.5E-08 MOLTSJ=  1     LINCIA=  0     ISPEC =  1
 TDIAM1=1500.0  TDIAM2=2000.0  FDIAM1=0.00    FDIAM2=0.00
 TC2H21=1500.0  TC2H22=2000.0  FC2H21=1.00    FC2H22=1.00
-MIHAL = 35     KONSG =  0     KORT  =5       KPP   =5       TCONV =1.0
+MIHAL = 34     KONSG =  0     KORT  =5       KPP   =20      TCONV =1.0
 lops  =  0     nops  =  1     dpein =0.005   dtin  =0.005   METPE = 2
 PALFA =2.000   PBETA =0.000   PNY   =8.000   PY    =0.076    VFIX =0.000
-MYPNTS=  4     NCORE =  5     KDIFF =  3     IRRIN =1       STEFF =6000.
-RSTAR =1.0     SMAJOR=0.30    INSYN =0     IRRINP=1     TBOTTOM=1500.0     REFLECT=0.07
+MYPNTS=  4     NCORE =  5     KDIFF =  3     IRRIN =0       STEFF =6000.
+RSTAR =1.0     SMAJOR=1.00    INSYN =0     IRRINP=0     TBOTTOM=300.0      REFLECT=0.07
 LOGTAU=-5.00   DIFFER=0.15
 LOGTAU=-0.2   DIFFER=0.10
 LOGTAU=-0.10   DIFFER=0.15
-LOGTAU=0.05  
+LOGTAU=2.00   DIFFER=0.10
+LOGTAU=2.50   
  &abundances  sunz='y', zscale=    1.00000, abundatms_inp=  0.    12.000000000000
  &end
    20
