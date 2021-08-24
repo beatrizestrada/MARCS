@@ -8693,7 +8693,7 @@ C DIMENSIONS
      *,RPR(NDP),RP(NDP),RD(NDP),RV(NDP),RFC(NDP),RPE(NDP),RT(NDP)
      *,TAUTAU(NDP) 
       LOGICAL NEWV
-      real*8 a,b,c,aa,bb,cc,aaa,ccc,STBZ,IR,RS,R,TIR
+      real*8 a,b,c,aa,bb,cc,aaa,ccc,STBZ,IR,RS,R,TIR, test_var
       character*24 idmodl
 C
 C CONNECTIONS VIA COMMON.
@@ -9014,12 +9014,8 @@ C FLUX TO PRINT
 
       do K=0, ntau-1
        if(irrinp.ge.1) CALL REFLECTED_IRRAD(NTAU-K, J)
-       if(irrinp.ge.1) CALL IRRAD_P(NTAU-K, J)
       end do
 
-      do K=1, ntau
-            EJ(K) = EJ(K) + EJ_P(K) + EJ_PLANET(K)
-      end do
 C
 C INITIATE MATRICES, TAU LOOP.
       DO 140 K=1,NTAU
@@ -9103,11 +9099,10 @@ C LOWER BOUNDARY
       XJ2(K)=-1.
       XJ3(K)=0.
       XJT1(K)=0.
-      !test_var = BPL(tbottom,wlos(j)) 
-      !XJT2(K)=DIVBP(tbottom, WLOS(J))
-      !XJT2(K)=DIVBP(tbottom, WLOS(J))
+      test_var = BPL(tbottom,wlos(j)) 
+      XJT2(K)=DIVBP(tbottom, WLOS(J))
       !XJT2(K)=1.
-      XJT2(K)=DBPL(K)
+      !XJT2(K)=DBPL(K)
       XJPE1(K)=0.
       XJPE2(K)=0.
       XJPE3(K)=0.
@@ -9119,17 +9114,24 @@ C TEMPERATURE EQUATION
 C RADIATIVE EQUILIBRIUM
       Y=-WLSTEP(J)*X(K)
       IF(K.GT.2) Y=Y*DB/(X(K)+S(K))
-      if(k.eq.ntau) then
-            !RT(K)=-(TT(K)-tbottom)
-            RT(K)= -(TT(K)+Y*EJ(K))
+      if(irrinp.eq.1) then 
+        if(k.eq.ntau) then
+            RT(K)=-(TT(K)-tbottom-Y*(EJ(K) + EJ_P(K)))
             TTT(K,K)=1.0
             TPE(K,K)=1.0
+        else
+            RT(K)=RT(K)-Y*(XJ(K)+EJ(K)+EJ_P(K)-BPLAN(K))
+            TJ2(K)=Y
+            TJ1(K)=0.
+            TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))*XT(K)/X(K)
+            TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))*XPE(K)/X(K)  
+        end if
       else
-      RT(K)=RT(K)-Y*(XJ(K)+EJ(K)-BPLAN(K))
-      TJ2(K)=Y
-      TJ1(K)=0.
-      TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))*XT(K)/X(K)
-      TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))*XPE(K)/X(K)  
+            RT(K)=RT(K)-Y*(XJ(K)+EJ(K)-BPLAN(K))
+            TJ2(K)=Y
+            TJ1(K)=0.
+            TTT(K,K)=TTT(K,K)-Y*DBPL(K)+Y*(XJ(K)-BPLAN(K))*XT(K)/X(K)
+            TPE(K,K)=TPE(K,K)+Y*(XJ(K)-BPLAN(K))*XPE(K)/X(K) 
       end if   
       GO TO 146
 145   CONTINUE
@@ -20227,6 +20229,7 @@ C COMMONS
      * DTAUIR(NDP), DTAUPLANET(NDP), DTAUP(NDP)
       common /cirinp/steff, reflect,irrinp,irrin
       common /irradcs/rstar, semimajor,tbottom, insyn 
+      COMMON /ROSSC/XKAPR(NDP),CROSS(NDP)  
 C
 C     STEFF:    Effective T of star in K
 C     R:        Distance from star to planet in AU
@@ -20247,8 +20250,9 @@ C
         E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
       end if
 
-      DTAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
-      EJ(K)=E(K) - E(K)*EXP((-DTAUIR(K))/MUIR)
+      DTAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) *XKAPR(K)* (ZZ(K)-ZZ(K+1))
+      EJ(K)=E(K) - E(K)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))*
+     & DTAUP(K))/MUIR)   
 
       if (ABS(EJ(K)) < 1e-33) then 
             EJ(k)=0.0
@@ -20257,13 +20261,22 @@ C
       GO TO 103
 101   CONTINUE
       if (K==NTAU) then
-            EJ(K) = EJ(K-1)
+            DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K)* 
+     &       xkapr(k) * abs(ZZ(K)-ZZ(K-1))
+            E(K)=E(K-1)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))*
+     &       DTAUIR(K))/MUIR)
+            EJ(K) = E(K-1) - E(K)
+            if (ABS(EJ(K)) < 1e-33) then 
+                  EJ(k)=0.0
+            end if
       else
-      DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+      DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K)* 
+     & xkapr(k) * (ZZ(K)-ZZ(K+1))
       if (ABS(EJ(K-1)) < 1e-33) then 
             EJ(k)=0.0
       else 
-            E(K)=E(K-1)*EXP((-DTAUIR(K))/MUIR)     
+            E(K)=E(K-1)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))
+     &       *DTAUIR(K))/MUIR)     
             EJ(K)=E(K-1)-E(K)
             if (ABS(EJ(K)) < 1e-33) then 
                   EJ(k)=0.0
@@ -20454,7 +20467,8 @@ C COMMONS
       COMMON /CIR/TAUIR(NDP),XIR(NDP,NWL),SIR(NDP,NWL),synspec(nwl),
      * DTAUIR(NDP), DTAUPLANET(NDP), DTAUP(NDP)
       common /cirinp/steff,reflect,irrinp,irrin
-      common /irradcs/rstar, semimajor,tbottom, insyn   
+      common /irradcs/rstar, semimajor,tbottom, insyn
+      COMMON /ROSSC/XKAPR(NDP),CROSS(NDP)   
 C
 C     STEFF:    Effective T of star in K
 C     R:        Distance from star to planet in AU
@@ -20472,16 +20486,20 @@ C     RS:       Stellar radius in AU
         if (ABS(E(K)) < 1e-33) then
             EJ_P(K) = 0.0
         else 
-            DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
+            DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) *
+     &       XKAPR(K)* (ZZ(K)-ZZ(K+1))
             E_P(K) = reflect*E(K)
-            EJ_P(K)= E_P(K) - E_P(K)*EXP(-DTAUP(K)/MUIR)
+            EJ_P(K)= E_P(K) - E_P(K)*
+     &       EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))*DTAUP(K))/MUIR) 
         end if
       else
        if (ABS(EJ_P(k+1)) < 1e-33) then 
             EJ_P(K)=0.0
        else
-          DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) * (ZZ(K)-ZZ(K+1))
-          E_P(K)=E_P(K+1)*EXP(-DTAUP(K)/MUIR)     
+          DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) *
+     &     XKAPR(K) * (ZZ(K)-ZZ(K+1))
+          E_P(K)=E_P(K+1)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))
+     &     *DTAUP(K))/MUIR)     
           EJ_P(K)= E_P(K+1) - E_P(K)
        end if
       end if
