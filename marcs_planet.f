@@ -20250,9 +20250,10 @@ C
         E(K)= synspec(J)*(Rstar_au/semimajor)**2/(4.*1.)*1.d-4*pi
       end if
 
-      DTAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) *XKAPR(K)* (ZZ(K)-ZZ(K+1))
+      DTAUIR(K)= (XIR(K,J)+SIR(K,J)) * RO(K) *
+     & XKAPR(K)* abs(ZZ(K)-ZZ(K+1))
       EJ(K)=E(K) - E(K)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))*
-     & DTAUP(K))/MUIR)   
+     & DTAUIR(K))/MUIR)   
 
       if (ABS(EJ(K)) < 1e-33) then 
             EJ(k)=0.0
@@ -20261,17 +20262,13 @@ C
       GO TO 103
 101   CONTINUE
       if (K==NTAU) then
-            DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K)* 
-     &       xkapr(k) * abs(ZZ(K)-ZZ(K-1))
-            E(K)=E(K-1)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))*
-     &       DTAUIR(K))/MUIR)
-            EJ(K) = E(K-1) - E(K)
+            EJ(K) = EJ(K-1)
             if (ABS(EJ(K)) < 1e-33) then 
                   EJ(k)=0.0
             end if
       else
       DTAUIR(K) = (XIR(K,J)+SIR(K,J)) * RO(K)* 
-     & xkapr(k) * (ZZ(K)-ZZ(K+1))
+     & xkapr(k) * abs(ZZ(K)-ZZ(K+1))
       if (ABS(EJ(K-1)) < 1e-33) then 
             EJ(k)=0.0
       else 
@@ -20487,7 +20484,7 @@ C     RS:       Stellar radius in AU
             EJ_P(K) = 0.0
         else 
             DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) *
-     &       XKAPR(K)* (ZZ(K)-ZZ(K+1))
+     &       XKAPR(K)* abs(ZZ(K)-ZZ(K+1))
             E_P(K) = reflect*E(K)
             EJ_P(K)= E_P(K) - E_P(K)*
      &       EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))*DTAUP(K))/MUIR) 
@@ -20497,7 +20494,7 @@ C     RS:       Stellar radius in AU
             EJ_P(K)=0.0
        else
           DTAUP(K) = (XIR(K,J)+SIR(K,J)) * RO(K) *
-     &     XKAPR(K) * (ZZ(K)-ZZ(K+1))
+     &     XKAPR(K) * abs(ZZ(K)-ZZ(K+1))
           E_P(K)=E_P(K+1)*EXP(-((XIR(K,J)/(XIR(K,J)+SIR(K,J)))
      &     *DTAUP(K))/MUIR)     
           EJ_P(K)= E_P(K+1) - E_P(K)
